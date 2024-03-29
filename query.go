@@ -1,4 +1,4 @@
-package utils
+package crud
 
 import (
 	"fmt"
@@ -33,6 +33,9 @@ func QueryFormat(key, value string) QueryParam {
 			case "%":
 				t += "::text"
 				znak = "like"
+			case "!%":
+				t += "::text"
+				znak = "not like"
 			case "~", "!~", "~*", "!~*":
 				t += "::text"
 			case "+":

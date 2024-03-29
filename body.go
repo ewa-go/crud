@@ -1,4 +1,4 @@
-package utils
+package crud
 
 import (
 	"encoding/json"
@@ -10,26 +10,39 @@ type Body struct {
 	Array          []map[string]interface{}
 	IsArray        bool
 	FieldIDName    string
-	Fields         []string
+	Fields         Fields
 	ExecuteHandler ExecuteHandler
 }
 
+type Field struct {
+	Key   string
+	Value any
+}
+
+type Fields []Field
+
 type ExecuteHandler func(data interface{}) error
 
-const (
-	fieldComment  = "comment"
-	fieldAuthor   = "author"
-	fieldCreated  = "created"
-	fieldModified = "modified"
-	fieldDatetime = "datetime"
-)
+func NewFields(key string, value any) Fields {
+	return Fields{{key, value}}
+}
 
-func NewBody(fieldIDName string, fields []string) *Body {
+func (f Fields) SetField(key string, value any) Fields {
+	f = append(f, Field{key, value})
+	return f
+}
+
+func NewBody(fieldIDName string, fields ...Field) *Body {
 	return &Body{
 		Data:        map[string]interface{}{},
 		FieldIDName: fieldIDName,
 		Fields:      fields,
 	}
+}
+
+func (b *Body) SetFields(fields ...Field) *Body {
+	b.Fields = append(b.Fields, fields...)
+	return b
 }
 
 func (b *Body) SetExecuteHandler(h ExecuteHandler) *Body {
@@ -63,19 +76,31 @@ func (b *Body) Execute(skipError bool) error {
 	return b.ExecuteHandler(b.Data)
 }
 
-func (b *Body) Set(key string, value interface{}) *Body {
+func (b *Body) SetField(key string, value any) *Body {
 	b.Data[key] = value
 	return b
 }
 
-func (b *Body) Get(key string) interface{} {
+func (b *Body) GetField(key string) any {
 	if value, ok := b.Data[key]; ok {
 		return value
 	}
 	return nil
 }
 
-func (b *Body) SetAuthor(value interface{}) *Body {
+func (b *Body) SetArrayField(i int, key string, value any) *Body {
+	b.Array[i][key] = value
+	return b
+}
+
+func (b *Body) GetArrayField(i int, key string) any {
+	if value, ok := b.Array[i][key]; ok {
+		return value
+	}
+	return nil
+}
+
+/*func (b *Body) SetAuthor(value interface{}) *Body {
 	return b.Set(fieldAuthor, value)
 }
 
@@ -93,15 +118,36 @@ func (b *Body) Datetime() *Body {
 
 func (b *Body) Comment(comment string) *Body {
 	return b.Set(fieldComment, comment)
-}
+}*/
 
-func (b *Body) Id() interface{} {
+/*func (b *Body) Id() interface{} {
 	if id, ok := b.Data[b.FieldIDName]; ok {
 		return id
 	}
 	return 0
+}*/
+
+func (b *Body) ToArrayMap(i int) (data map[string]interface{}) {
+	if b == nil {
+		return nil
+	}
+	data = b.Array[i]
+	for _, field := range b.Fields {
+		if data != nil {
+			data[field.Key] = field.Value
+		}
+	}
+	return
 }
 
 func (b *Body) ToMap() map[string]interface{} {
+	if b == nil {
+		return nil
+	}
+	for _, field := range b.Fields {
+		if b.Data != nil {
+			b.Data[field.Key] = field.Value
+		}
+	}
 	return b.Data
 }

@@ -1,4 +1,4 @@
-package utils
+package crud
 
 import "github.com/ewa-go/ewa"
 
@@ -30,16 +30,16 @@ func (h HeaderValues) Default() string {
 	return ""
 }
 
-func GetValueFromHeader(c *ewa.Context, key string, h HeaderValues) string {
+func (r Route) GetValueFromHeader(c *ewa.Context, key string) string {
 	header := c.Get(key)
-	for _, hh := range h {
+	for _, hh := range r.Headers {
 		if hh.Key == header {
 			header = hh.Value
 			break
 		}
 	}
 	if header == "" {
-		header = h.Default()
+		header = r.Headers.Default()
 	}
 	return header
 }

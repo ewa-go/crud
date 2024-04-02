@@ -112,13 +112,14 @@ func (r Route) SetHeader(key, value string, isDefault ...bool) Route {
 	return r
 }
 
-// SetModelName Установка имени модели - таблицы
-func (r Route) SetModelName(fieldIdName string) Route {
+// SetFieldIdName Установка имени идентификационного поля ../name/{id}
+func (r Route) SetFieldIdName(fieldIdName string) Route {
 	r.FieldIdName = fieldIdName
 	return r
 }
 
-func (r Route) SetFieldIdName(modelName string) Route {
+// SetModelName Установка имени модели - таблицы
+func (r Route) SetModelName(modelName string) Route {
 	r.ModelName = modelName
 	return r
 }

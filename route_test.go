@@ -30,15 +30,15 @@ func (a *Audit) Insert(tableName, action string, identity Identity, path string)
 	a.Path = path
 }
 
-type Func struct{}
+type Handlers struct{}
 
-func (c *Func) Columns(tableName string, fields ...string) []string {
+func (c *Handlers) Columns(tableName string, fields ...string) []string {
 	fmt.Println("Columns")
 	fmt.Printf("tableName: %s\n", tableName)
 	return []string{"id", "name"}
 }
 
-func (c *Func) SetRecord(tableName string, data Map, params *QueryParams) (uint, error) {
+func (c *Handlers) SetRecord(tableName string, data Map, params *QueryParams) (uint, error) {
 	fmt.Println("SetRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("data: %v\n", data)
@@ -46,7 +46,7 @@ func (c *Func) SetRecord(tableName string, data Map, params *QueryParams) (uint,
 	return 0, nil
 }
 
-func (c *Func) GetRecord(tableName string, params *QueryParams) (Map, error) {
+func (c *Handlers) GetRecord(tableName string, params *QueryParams) (Map, error) {
 	fmt.Println("GetRecord")
 	if params.ID != nil {
 		fmt.Println("ID", params.ID.String())
@@ -58,7 +58,7 @@ func (c *Func) GetRecord(tableName string, params *QueryParams) (Map, error) {
 	return data, nil
 }
 
-func (c *Func) GetRecords(tableName string, params *QueryParams) (Maps, int64, error) {
+func (c *Handlers) GetRecords(tableName string, params *QueryParams) (Maps, int64, error) {
 	fmt.Println("GetRecords")
 	fmt.Println("query", params.GetQuery([]string{"name"}, c.Columns(tableName)))
 	data := Maps{}
@@ -67,7 +67,7 @@ func (c *Func) GetRecords(tableName string, params *QueryParams) (Maps, int64, e
 	return data, 2, nil
 }
 
-func (c *Func) UpdateRecord(tableName string, data Map, params *QueryParams) error {
+func (c *Handlers) UpdateRecord(tableName string, data Map, params *QueryParams) error {
 	fmt.Println("UpdateRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("data: %v\n", data)
@@ -75,7 +75,7 @@ func (c *Func) UpdateRecord(tableName string, data Map, params *QueryParams) err
 	return nil
 }
 
-func (c *Func) DeleteRecord(tableName string, params *QueryParams) error {
+func (c *Handlers) DeleteRecord(tableName string, params *QueryParams) error {
 	fmt.Println("DeleteRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("params: %v\n", params)
@@ -84,14 +84,14 @@ func (c *Func) DeleteRecord(tableName string, params *QueryParams) error {
 
 var (
 	a = new(Audit)
-	f = new(Func)
+	h = new(Handlers)
 )
 
 func TestGet(t *testing.T) {
 
 	route := &ewa.Route{
 		Handler: func(c *ewa.Context) error {
-			return NewCRUD(f, a).
+			return NewCRUD(h).
 				SetModelName("table").
 				SetFieldIdName("id").
 				ReadHandler(c)
@@ -114,12 +114,12 @@ func TestCustomHandler(t *testing.T) {
 
 	route := &ewa.Route{
 		Handler: func(c *ewa.Context) error {
-			return NewCRUD(f, a).
+			return NewCRUD(h).
 				SetModelName("table").
 				SetFieldIdName("id").
 				CustomHandler(c, func(c *ewa.Context, r CRUD) error {
 					identity := NewIdentity(c.Identity)
-					defer r.Audit.Insert(r.ModelName, Read, identity, c.Path())
+					defer r.Insert(r.ModelName, Read, identity, c.Path())
 					return c.SendString(200, "OK")
 				})
 		},

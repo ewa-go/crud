@@ -60,7 +60,7 @@ func (c *Handlers) GetRecord(tableName string, params *QueryParams) (Map, error)
 
 func (c *Handlers) GetRecords(tableName string, params *QueryParams) (Maps, int64, error) {
 	fmt.Println("GetRecords")
-	fmt.Println("query", params.GetQuery([]string{"name"}, c.Columns(tableName)))
+	fmt.Println("query", params.GetQuery(c.Columns(tableName)))
 	data := Maps{}
 	data = append(data, Map{"id": 1, "name": "Name"})
 	data = append(data, Map{"id": 2, "name": "Name2"})
@@ -91,7 +91,8 @@ func TestGet(t *testing.T) {
 
 	route := &ewa.Route{
 		Handler: func(c *ewa.Context) error {
-			return NewCRUD(h).
+			return New(h).
+				SetIAudit(a).
 				SetModelName("table").
 				SetFieldIdName("id").
 				ReadHandler(c)
@@ -114,7 +115,7 @@ func TestCustomHandler(t *testing.T) {
 
 	route := &ewa.Route{
 		Handler: func(c *ewa.Context) error {
-			return NewCRUD(h).
+			return New(h).
 				SetModelName("table").
 				SetFieldIdName("id").
 				CustomHandler(c, func(c *ewa.Context, r CRUD) error {

@@ -166,7 +166,7 @@ func (q *QueryParam) String() string {
 }
 
 // GetQuery Формирование запроса
-func (q *QueryParams) GetQuery(fields []string, columns []string) string {
+func (q *QueryParams) GetQuery(columns []string) string {
 	var (
 		values      []string
 		valueFields []string
@@ -190,8 +190,8 @@ func (q *QueryParams) GetQuery(fields []string, columns []string) string {
 
 	if value, ok := q.m["*"]; ok {
 		// Параметр адресной строки *=
-		if len(fields) > 0 {
-			for _, field := range fields {
+		if q.Filter != nil && len(q.Filter.Fields) > 0 {
+			for _, field := range q.Filter.Fields {
 				if _, ok = q.m[field]; !ok {
 					value.Key = field
 					valueFields = append(valueFields, value.String())

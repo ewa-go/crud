@@ -59,7 +59,7 @@ func (e StatusDict) Get(status int, def ...string) (s int, v string) {
 	return status, v
 }
 
-func NewCRUD(h IHandlers) CRUD {
+func New(h IHandlers) CRUD {
 
 	var errDict = StatusDict{
 		422: "Ошибка возвращаемых данных",

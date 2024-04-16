@@ -8,27 +8,42 @@ type Response struct {
 	State    string    `json:"state"`
 	Datetime time.Time `json:"datetime"`
 	Message  string    `json:"message"`
+	Data     any       `json:"data,omitempty"`
 }
 
-// NewResponse Ответ для обычных таблиц
-func NewResponse(id interface{}, state, message string, ok bool) Response {
-	return Response{
-		Id:       id,
-		OK:       ok,
-		State:    state,
-		Datetime: time.Now(),
-		Message:  message,
-	}
+func (r Response) Read(id any, message string, data any, ok bool) any {
+	r.Id = id
+	r.State = Read
+	r.Datetime = time.Now()
+	r.Message = message
+	r.OK = ok
+	r.Data = data
+	return r
 }
 
-func NewCreated(id interface{}, message string, ok bool) Response {
-	return NewResponse(id, Created, message, ok)
+func (r Response) Created(id interface{}, message string, ok bool) any {
+	r.Id = id
+	r.State = Created
+	r.Datetime = time.Now()
+	r.Message = message
+	r.OK = ok
+	return r
 }
 
-func NewUpdated(id interface{}, message string, ok bool) Response {
-	return NewResponse(id, Updated, message, ok)
+func (r Response) Updated(id interface{}, message string, ok bool) any {
+	r.Id = id
+	r.State = Updated
+	r.Datetime = time.Now()
+	r.Message = message
+	r.OK = ok
+	return r
 }
 
-func NewDeleted(id interface{}, message string, ok bool) Response {
-	return NewResponse(id, Deleted, message, ok)
+func (r Response) Deleted(id interface{}, message string, ok bool) any {
+	r.Id = id
+	r.State = Deleted
+	r.Datetime = time.Now()
+	r.Message = message
+	r.OK = ok
+	return r
 }

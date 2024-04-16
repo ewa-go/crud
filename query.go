@@ -1,6 +1,7 @@
 package crud
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -11,11 +12,82 @@ type QueryParam struct {
 	IsQuotes               bool
 }
 
-func QueryFormat(key, value string) QueryParam {
+type QueryParams struct {
+	Filter *Filter
+	ID     *QueryParam
+	m      map[string]*QueryParam
+	values []string
+}
+
+type Filter struct {
+	Fields []string `json:"fields,omitempty"`
+	Orders []string `json:"orders,omitempty"`
+	Limit  int      `json:"limit,omitempty"`
+	Offset int      `json:"offset,omitempty"`
+}
+
+type Map map[string]interface{}
+
+type Maps []map[string]interface{}
+
+// NewFilter Инициализация фильтра для таблиц
+func NewFilter(data []byte) (f Filter, err error) {
+	f = Filter{
+		Limit:  -1,
+		Offset: -1,
+	}
+	if len(data) > 0 {
+		err = json.Unmarshal(data, &f)
+	}
+	return f, err
+}
+
+func (m Map) Excludes(e ...string) {
+	if len(e) > 0 {
+		for _, exclude := range e {
+			delete(m, exclude)
+		}
+	}
+}
+
+func (m Maps) Excludes(e ...string) {
+	if len(e) > 0 {
+		for _, record := range m {
+			for _, exclude := range e {
+				delete(record, exclude)
+			}
+		}
+	}
+}
+
+// Values Строковый массив для sql запроса
+func (q *QueryParams) Values() []string {
+	return q.values
+}
+
+func (q *QueryParams) set(key string, param *QueryParam) {
+	if q.m == nil {
+		q.m = make(map[string]*QueryParam)
+	}
+	q.m[key] = param
+	q.values = append(q.values, param.String())
+}
+
+// Get Вернуть карту параметров
+func (q *QueryParams) Get() map[string]*QueryParam {
+	return q.m
+}
+
+// Len Длина карты
+func (q *QueryParams) Len() int {
+	return len(q.m)
+}
+
+func QueryFormat(key, value string) *QueryParam {
 	var (
-		t string
+		t    string
+		znak = "="
 	)
-	znak := "="
 	key = strings.Trim(key, " ")
 	r := regexp.MustCompile(`\[(>|<|>-|<-|!|<>|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
@@ -81,7 +153,7 @@ func QueryFormat(key, value string) QueryParam {
 			value = "'" + value + "'"
 		}
 	}
-	return QueryParam{
+	return &QueryParam{
 		Key:   key,
 		Znak:  znak,
 		Value: value,
@@ -89,6 +161,62 @@ func QueryFormat(key, value string) QueryParam {
 	}
 }
 
-func (q QueryParam) String() string {
+func (q *QueryParam) String() string {
 	return fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value)
+}
+
+// GetQuery Формирование запроса
+func (q *QueryParams) GetQuery(fields []string, columns []string) string {
+	var (
+		values      []string
+		valueFields []string
+		query       string
+	)
+
+	if q.Len() == 0 {
+		return ""
+	}
+
+	if q.ID != nil {
+		values = append(values, q.ID.String())
+	}
+
+	for key, value := range q.m {
+		if key == "*" {
+			continue
+		}
+		values = append(values, value.String())
+	}
+
+	if value, ok := q.m["*"]; ok {
+		// Параметр адресной строки *=
+		if len(fields) > 0 {
+			for _, field := range fields {
+				if _, ok = q.m[field]; !ok {
+					value.Key = field
+					valueFields = append(valueFields, value.String())
+				}
+			}
+		} else {
+			for _, column := range columns {
+				if _, ok = q.m[column]; !ok {
+					value.Key = column
+					valueFields = append(valueFields, value.String())
+				}
+			}
+		}
+	}
+
+	if len(valueFields) > 0 {
+		query = "(" + strings.Join(valueFields, " or ") + ")"
+	}
+	if len(values) > 0 {
+		v := strings.Join(values, " and ")
+		if len(query) > 0 {
+			query += " and " + v
+		} else {
+			query = v
+		}
+	}
+	return query
 }

@@ -100,33 +100,6 @@ func (b *Body) GetArrayField(i int, key string) any {
 	return nil
 }
 
-/*func (b *Body) SetAuthor(value interface{}) *Body {
-	return b.Set(fieldAuthor, value)
-}
-
-func (b *Body) Created() *Body {
-	return b.Set(fieldCreated, UTC())
-}
-
-func (b *Body) Modified() *Body {
-	return b.Set(fieldModified, UTC())
-}
-
-func (b *Body) Datetime() *Body {
-	return b.Set(fieldDatetime, UTC())
-}
-
-func (b *Body) Comment(comment string) *Body {
-	return b.Set(fieldComment, comment)
-}*/
-
-/*func (b *Body) Id() interface{} {
-	if id, ok := b.Data[b.FieldIDName]; ok {
-		return id
-	}
-	return 0
-}*/
-
 func (b *Body) ToArrayMap(i int) (data map[string]interface{}) {
 	if b == nil {
 		return nil

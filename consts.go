@@ -9,13 +9,12 @@ const (
 )
 
 const (
-	ModelResponse = "Response"
-	ModelFilter   = "Filter"
-	filterName    = "~"
+	filterParamName = "~"
 )
 
 const (
 	HeaderXContentType = "X-Content-Type"
 	HeaderTableInfo    = "Table-Info"
 	HeaderTableType    = "Table-Type"
+	HeaderTotal        = "Total"
 )

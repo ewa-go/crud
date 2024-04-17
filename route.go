@@ -161,13 +161,15 @@ func (r *CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
 	}
 	paramId := c.Params(r.FieldIdName)
 	if len(paramId) > 0 {
-		queryParams.Set(r.FieldIdName, QueryFormat(r.FieldIdName, paramId))
+		queryParams.ID = QueryFormat(r.FieldIdName, paramId)
+		//queryParams.Set(r.FieldIdName, )
 	}
 	c.QueryParams(func(key, value string) {
 		if key == filterParamName {
 			return
 		}
-		queryParams.Set(key, QueryFormat(key, value))
+		q := QueryFormat(key, value)
+		queryParams.Set(q.Key, q)
 	})
 
 	return &queryParams, nil

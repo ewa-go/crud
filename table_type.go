@@ -9,10 +9,6 @@ type TableType struct {
 
 type TableTypes []TableType
 
-func NewTableTypes(h ...TableType) TableTypes {
-	return h
-}
-
 // Add Добавить тип таблицы
 func (h TableTypes) Add(key, value string, isDefault ...bool) TableTypes {
 	var d bool

@@ -95,7 +95,7 @@ func (r CRUD) SetIResponse(resp IResponse) CRUD {
 
 // SetHeader Установка заголовков
 func (r CRUD) SetHeader(key, value string, isDefault ...bool) CRUD {
-	r.TableTypes.Add(key, value, isDefault...)
+	r.TableTypes = r.TableTypes.Add(key, value, isDefault...)
 	return r
 }
 

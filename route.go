@@ -71,6 +71,7 @@ func New(h IHandlers) *CRUD {
 	return &CRUD{
 		IHandlers:  h,
 		IAudit:     new(audit),
+		IResponse:  new(response),
 		StatusDict: errDict,
 	}
 }
@@ -180,7 +181,7 @@ func (r *CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r CRUD) erro
 // ReadHandler Обработчик получения записей
 func (r *CRUD) ReadHandler(c *ewa.Context) error {
 
-	r.ModelName = r.TableTypes.Get(c, HeaderTableType)
+	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Read, r.ModelName, identity, c.Path())
@@ -246,6 +247,8 @@ func (r *CRUD) ReadHandler(c *ewa.Context) error {
 // CreateHandler Обработчик для создания записей
 func (r *CRUD) CreateHandler(c *ewa.Context) error {
 
+	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
+
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Created, r.ModelName, identity, c.Path())
 
@@ -306,6 +309,8 @@ func (r *CRUD) CreateHandler(c *ewa.Context) error {
 // UpdateHandler Обновление записей
 func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 
+	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
+
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Updated, r.ModelName, identity, c.Path())
 
@@ -348,6 +353,8 @@ func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 
 // DeleteHandler Обработчик удаления записей
 func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
+
+	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Deleted, r.ModelName, identity, c.Path())

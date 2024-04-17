@@ -2,7 +2,7 @@ package crud
 
 import "time"
 
-type Response struct {
+type response struct {
 	Id       any       `json:"id" jsonschema:"type=integer"`
 	OK       bool      `json:"ok"`
 	State    string    `json:"state"`
@@ -11,7 +11,7 @@ type Response struct {
 	Data     any       `json:"data,omitempty"`
 }
 
-func (r Response) Read(id any, data any, err error) any {
+func (r response) Read(id any, data any, err error) any {
 	r.Id = id
 	r.State = Read
 	r.Datetime = time.Now()
@@ -23,7 +23,7 @@ func (r Response) Read(id any, data any, err error) any {
 	return r
 }
 
-func (r Response) Created(id interface{}, err error) any {
+func (r response) Created(id interface{}, err error) any {
 	r.Id = id
 	r.State = Created
 	r.Datetime = time.Now()
@@ -34,7 +34,7 @@ func (r Response) Created(id interface{}, err error) any {
 	return r
 }
 
-func (r Response) Updated(id interface{}, err error) any {
+func (r response) Updated(id interface{}, err error) any {
 	r.Id = id
 	r.State = Updated
 	r.Datetime = time.Now()
@@ -45,7 +45,7 @@ func (r Response) Updated(id interface{}, err error) any {
 	return r
 }
 
-func (r Response) Deleted(id interface{}, err error) any {
+func (r response) Deleted(id interface{}, err error) any {
 	r.Id = id
 	r.State = Deleted
 	r.Datetime = time.Now()

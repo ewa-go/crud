@@ -18,10 +18,10 @@ type IHandlers interface {
 }
 
 type IResponse interface {
-	Read(id any, message string, data any, ok bool) any
-	Created(id interface{}, message string, ok bool) any
-	Updated(id interface{}, message string, ok bool) any
-	Deleted(id interface{}, message string, ok bool) any
+	Read(id any, data any, err error) any
+	Created(id interface{}, err error) any
+	Updated(id interface{}, err error) any
+	Deleted(id interface{}, err error) any
 }
 
 type audit struct{}

@@ -65,7 +65,7 @@ func (q *QueryParams) Values() []string {
 	return q.values
 }
 
-func (q *QueryParams) set(key string, param *QueryParam) {
+func (q *QueryParams) Set(key string, param *QueryParam) {
 	if q.m == nil {
 		q.m = make(map[string]*QueryParam)
 	}
@@ -141,7 +141,18 @@ func QueryFormat(key, value string) *QueryParam {
 		if r.MatchString(value) {
 			matches := r.FindStringSubmatch(value)
 			if len(matches) == 2 {
-				znak = fmt.Sprintf("in(%s)", matches[1])
+				var (
+					values string
+					z      = ","
+					array  = strings.Split(matches[1], ",")
+				)
+				for i, m := range array {
+					if i == len(array)-1 {
+						z = ""
+					}
+					values += "'" + m + "'" + z
+				}
+				znak = fmt.Sprintf("in(%s)", values)
 				value = ""
 			}
 		}

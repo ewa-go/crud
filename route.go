@@ -160,13 +160,13 @@ func (r CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
 	}
 	paramId := c.Params(r.FieldIdName)
 	if len(paramId) > 0 {
-		queryParams.set(r.FieldIdName, QueryFormat(r.FieldIdName, paramId))
+		queryParams.Set(r.FieldIdName, QueryFormat(r.FieldIdName, paramId))
 	}
 	c.QueryParams(func(key, value string) {
 		if key == filterParamName {
 			return
 		}
-		queryParams.set(key, QueryFormat(key, value))
+		queryParams.Set(key, QueryFormat(key, value))
 	})
 
 	return &queryParams, nil
@@ -272,10 +272,10 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 			id, err := r.SetRecord(r.ModelName, body.ToArrayMap(i), nil)
 			if err != nil {
 				_, e := r.StatusDict.Get(422)
-				resp = append(resp, r.Created(id, e, false))
+				resp = append(resp, r.Created(id, fmt.Errorf(e)))
 				continue
 			}
-			resp = append(resp, r.Created(id, "OK", true))
+			resp = append(resp, r.Created(id, nil))
 		}
 
 		// Обработчик после обращению в бд
@@ -300,7 +300,7 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 		}
 	}
 
-	return c.JSON(200, r.Created(id, "OK", true))
+	return c.JSON(200, r.Created(id, nil))
 }
 
 // UpdateHandler Обновление записей
@@ -343,7 +343,7 @@ func (r CRUD) UpdateHandler(c *ewa.Context) error {
 		}
 	}
 
-	return c.JSON(r.JSON(200, r.Updated(body.GetField(r.FieldIdName), "OK", true)))
+	return c.JSON(r.JSON(200, r.Updated(body.GetField(r.FieldIdName), nil)))
 }
 
 // DeleteHandler Обработчик удаления записей
@@ -386,5 +386,5 @@ func (r CRUD) DeleteHandler(c *ewa.Context) (err error) {
 		id = queryParams.ID.Value
 	}
 
-	return c.JSON(r.JSON(200, r.Deleted(id, "OK", true)))
+	return c.JSON(r.JSON(200, r.Deleted(id, nil)))
 }

@@ -11,39 +11,47 @@ type Response struct {
 	Data     any       `json:"data,omitempty"`
 }
 
-func (r Response) Read(id any, message string, data any, ok bool) any {
+func (r Response) Read(id any, data any, err error) any {
 	r.Id = id
 	r.State = Read
 	r.Datetime = time.Now()
-	r.Message = message
-	r.OK = ok
 	r.Data = data
+	if err != nil {
+		r.Message = err.Error()
+		r.OK = true
+	}
 	return r
 }
 
-func (r Response) Created(id interface{}, message string, ok bool) any {
+func (r Response) Created(id interface{}, err error) any {
 	r.Id = id
 	r.State = Created
 	r.Datetime = time.Now()
-	r.Message = message
-	r.OK = ok
+	if err != nil {
+		r.Message = err.Error()
+		r.OK = true
+	}
 	return r
 }
 
-func (r Response) Updated(id interface{}, message string, ok bool) any {
+func (r Response) Updated(id interface{}, err error) any {
 	r.Id = id
 	r.State = Updated
 	r.Datetime = time.Now()
-	r.Message = message
-	r.OK = ok
+	if err != nil {
+		r.Message = err.Error()
+		r.OK = true
+	}
 	return r
 }
 
-func (r Response) Deleted(id interface{}, message string, ok bool) any {
+func (r Response) Deleted(id interface{}, err error) any {
 	r.Id = id
 	r.State = Deleted
 	r.Datetime = time.Now()
-	r.Message = message
-	r.OK = ok
+	if err != nil {
+		r.Message = err.Error()
+		r.OK = true
+	}
 	return r
 }

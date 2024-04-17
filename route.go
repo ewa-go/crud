@@ -322,7 +322,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
-	if queryParams != nil && queryParams.Len() == 0 {
+	if queryParams != nil && (queryParams.ID == nil || queryParams.Len() == 0) {
 		return c.SendString(r.String(consts.StatusBadRequest, "Укажите поля для уточнения изменения записи! Пример: ../path?name=Name"))
 	}
 
@@ -367,7 +367,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
-	if queryParams != nil && queryParams.Len() == 0 {
+	if queryParams != nil && (queryParams.ID == nil || queryParams.Len() == 0) {
 		return c.SendString(r.String(consts.StatusBadRequest, "Укажите поля для уточнения изменения записи! Пример: ../path?name=Name"))
 	}
 

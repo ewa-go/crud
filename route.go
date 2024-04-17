@@ -59,7 +59,7 @@ func (e StatusDict) Get(status int, def ...string) (s int, v string) {
 	return status, v
 }
 
-func New(h IHandlers) CRUD {
+func New(h IHandlers) *CRUD {
 
 	var errDict = StatusDict{
 		422: "Ошибка возвращаемых данных",
@@ -68,7 +68,7 @@ func New(h IHandlers) CRUD {
 		400: "Ошибка входных данных",
 	}
 
-	return CRUD{
+	return &CRUD{
 		IHandlers:  h,
 		IAudit:     new(audit),
 		StatusDict: errDict,
@@ -76,55 +76,55 @@ func New(h IHandlers) CRUD {
 }
 
 // SetErrorDict Справочник ошибок
-func (r CRUD) SetErrorDict(errorDict map[int]string) CRUD {
+func (r *CRUD) SetErrorDict(errorDict map[int]string) *CRUD {
 	r.StatusDict = errorDict
 	return r
 }
 
 // SetIAudit Установка интерфейса для аудита
-func (r CRUD) SetIAudit(audit IAudit) CRUD {
+func (r *CRUD) SetIAudit(audit IAudit) *CRUD {
 	r.IAudit = audit
 	return r
 }
 
 // SetIResponse Установка интерфейса для ответов
-func (r CRUD) SetIResponse(resp IResponse) CRUD {
+func (r *CRUD) SetIResponse(resp IResponse) *CRUD {
 	r.IResponse = resp
 	return r
 }
 
 // SetHeader Установка заголовков
-func (r CRUD) SetHeader(key, value string, isDefault ...bool) CRUD {
+func (r *CRUD) SetHeader(key, value string, isDefault ...bool) *CRUD {
 	r.TableTypes = r.TableTypes.Add(key, value, isDefault...)
 	return r
 }
 
 // SetFieldIdName Установка имени идентификационного поля ../name/{id}
-func (r CRUD) SetFieldIdName(fieldIdName string) CRUD {
+func (r *CRUD) SetFieldIdName(fieldIdName string) *CRUD {
 	r.FieldIdName = fieldIdName
 	return r
 }
 
 // SetModelName Установка имени модели - таблицы
-func (r CRUD) SetModelName(modelName string) CRUD {
+func (r *CRUD) SetModelName(modelName string) *CRUD {
 	r.ModelName = modelName
 	return r
 }
 
 // SetExcludes Установка исключения полей из данных
-func (r CRUD) SetExcludes(excludes ...string) CRUD {
+func (r *CRUD) SetExcludes(excludes ...string) *CRUD {
 	r.Excludes = append(r.Excludes, excludes...)
 	return r
 }
 
 // SetBeforeHandler Установка обработчика до действий в бд
-func (r CRUD) SetBeforeHandler(h Handler) CRUD {
+func (r *CRUD) SetBeforeHandler(h Handler) *CRUD {
 	r.BeforeHandler = h
 	return r
 }
 
 // SetAfterHandler Установка обработчика после действий в бд
-func (r CRUD) SetAfterHandler(h Handler) CRUD {
+func (r *CRUD) SetAfterHandler(h Handler) *CRUD {
 	r.AfterHandler = h
 	return r
 }
@@ -140,7 +140,7 @@ func NewIdentity(identity *security.Identity) (i Identity) {
 }
 
 // NewQueryParams Извлечение параметров адресной строки
-func (r CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
+func (r *CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
 
 	// Получаем фильтр
 	body := c.Body()
@@ -173,12 +173,12 @@ func (r CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
 }
 
 // CustomHandler Установка обработчика маршрута
-func (r CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r CRUD) error) error {
-	return h(c, r)
+func (r *CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r CRUD) error) error {
+	return h(c, *r)
 }
 
 // ReadHandler Обработчик получения записей
-func (r CRUD) ReadHandler(c *ewa.Context) error {
+func (r *CRUD) ReadHandler(c *ewa.Context) error {
 
 	r.ModelName = r.TableTypes.Get(c, HeaderTableType)
 
@@ -201,7 +201,7 @@ func (r CRUD) ReadHandler(c *ewa.Context) error {
 
 	// Обработчик до обращения в бд
 	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, r, identity, queryParams, nil); err != nil {
+		if status, err := r.BeforeHandler(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -216,7 +216,7 @@ func (r CRUD) ReadHandler(c *ewa.Context) error {
 
 		// Обработчик после обращению в бд
 		if r.AfterHandler != nil {
-			if status, err := r.AfterHandler(c, r, identity, queryParams, nil); err != nil {
+			if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
 				return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 			}
 		}
@@ -235,7 +235,7 @@ func (r CRUD) ReadHandler(c *ewa.Context) error {
 
 	// Обработчик после обращению в бд
 	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, r, identity, queryParams, nil); err != nil {
+		if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -244,7 +244,7 @@ func (r CRUD) ReadHandler(c *ewa.Context) error {
 }
 
 // CreateHandler Обработчик для создания записей
-func (r CRUD) CreateHandler(c *ewa.Context) error {
+func (r *CRUD) CreateHandler(c *ewa.Context) error {
 
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Created, r.ModelName, identity, c.Path())
@@ -261,7 +261,7 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 
 	// Обработчик до обращения в бд
 	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, r, identity, queryParams, body); err != nil {
+		if status, err := r.BeforeHandler(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -280,7 +280,7 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 
 		// Обработчик после обращению в бд
 		if r.AfterHandler != nil {
-			if status, err := r.AfterHandler(c, r, identity, queryParams, body); err != nil {
+			if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
 				return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 			}
 		}
@@ -295,7 +295,7 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 
 	// Обработчик после обращению в бд
 	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, r, identity, queryParams, body); err != nil {
+		if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -304,7 +304,7 @@ func (r CRUD) CreateHandler(c *ewa.Context) error {
 }
 
 // UpdateHandler Обновление записей
-func (r CRUD) UpdateHandler(c *ewa.Context) error {
+func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Updated, r.ModelName, identity, c.Path())
@@ -326,7 +326,7 @@ func (r CRUD) UpdateHandler(c *ewa.Context) error {
 
 	// Обработчик до обращения в бд
 	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, r, identity, queryParams, body); err != nil {
+		if status, err := r.BeforeHandler(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -338,7 +338,7 @@ func (r CRUD) UpdateHandler(c *ewa.Context) error {
 
 	// Обработчик после обращению в бд
 	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, r, identity, queryParams, body); err != nil {
+		if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -347,7 +347,7 @@ func (r CRUD) UpdateHandler(c *ewa.Context) error {
 }
 
 // DeleteHandler Обработчик удаления записей
-func (r CRUD) DeleteHandler(c *ewa.Context) (err error) {
+func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
 
 	identity := NewIdentity(c.Identity)
 	defer r.Insert(Deleted, r.ModelName, identity, c.Path())
@@ -364,7 +364,7 @@ func (r CRUD) DeleteHandler(c *ewa.Context) (err error) {
 
 	// Обработчик до обращения в бд
 	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, r, identity, queryParams, nil); err != nil {
+		if status, err := r.BeforeHandler(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -376,7 +376,7 @@ func (r CRUD) DeleteHandler(c *ewa.Context) (err error) {
 
 	// Обработчик после обращению в бд
 	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, r, identity, queryParams, nil); err != nil {
+		if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}

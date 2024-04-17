@@ -87,6 +87,11 @@ var (
 	h = new(Handlers)
 )
 
+func TestSetModelName(t *testing.T) {
+	crud := New(h).SetModelName("table")
+	fmt.Println(crud.ModelName)
+}
+
 func TestGet(t *testing.T) {
 
 	route := &ewa.Route{

@@ -241,7 +241,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 	if queryParams != nil && queryParams.ID != nil {
 		record, err := r.GetRecord(r.ModelName, queryParams)
 		if err != nil {
-			return c.SendString(r.String(r.StatusDict.Get(consts.StatusUnprocessableEntity)))
+			return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 		}
 		record.Excludes(r.Excludes...)
 
@@ -258,7 +258,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 	// Вернуть записи
 	records, total, err := r.GetRecords(r.ModelName, queryParams)
 	if err != nil {
-		return c.SendString(r.String(r.StatusDict.Get(consts.StatusUnprocessableEntity)))
+		return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 	// Заголовок Total
 	c.Set(HeaderTotal, fmt.Sprintf("%d", total))
@@ -305,8 +305,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 			id, err := r.SetRecord(r.ModelName, body.ToArrayMap(i), nil)
 			if err != nil {
-				_, e := r.StatusDict.Get(422)
-				resp = append(resp, r.Created(id, fmt.Errorf(e)))
+				resp = append(resp, r.Created(id, err))
 				continue
 			}
 			resp = append(resp, r.Created(id, nil))
@@ -331,7 +330,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 	id, err := r.SetRecord(r.ModelName, body.ToMap(), nil)
 	if err != nil {
-		return c.SendString(r.String(r.StatusDict.Get(consts.StatusUnprocessableEntity)))
+		return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
@@ -376,7 +375,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Пишем данные в бд
 	if err := r.UpdateRecord(r.ModelName, body.ToMap(), queryParams); err != nil {
-		return c.SendString(r.String(r.StatusDict.Get(consts.StatusUnprocessableEntity)))
+		return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
@@ -416,7 +415,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) 
 
 	// Удаление записи
 	if err = r.DeleteRecord(r.ModelName, queryParams); err != nil {
-		return c.SendString(r.String(r.StatusDict.Get(consts.StatusUnprocessableEntity)))
+		return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд

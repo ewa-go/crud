@@ -292,16 +292,17 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
-	// Обработчик до обращения в бд
-	if before != nil {
-		if status, err := before(c, *r, identity, queryParams, body); err != nil {
-			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
-		}
-	}
-
 	if body.IsArray {
 		var resp []any
 		for i := range body.Array {
+
+			// Обработчик до обращения в бд
+			if before != nil {
+				if status, err := before(c, *r, identity, queryParams, body); err != nil {
+					return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
+				}
+			}
+
 			id, err := r.SetRecord(r.ModelName, body.ToArrayMap(i), nil)
 			if err != nil {
 				_, e := r.StatusDict.Get(422)
@@ -319,6 +320,13 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 		}
 
 		return c.JSON(200, resp)
+	}
+
+	// Обработчик до обращения в бд
+	if before != nil {
+		if status, err := before(c, *r, identity, queryParams, body); err != nil {
+			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
+		}
 	}
 
 	id, err := r.SetRecord(r.ModelName, body.ToMap(), nil)

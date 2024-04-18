@@ -100,7 +100,7 @@ func TestGet(t *testing.T) {
 				SetIAudit(a).
 				SetModelName("table").
 				SetFieldIdName("id").
-				ReadHandler(c)
+				ReadHandler(c, nil, nil)
 		},
 	}
 

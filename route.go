@@ -21,8 +21,8 @@ type CRUD struct {
 	IHandlers
 	IResponse
 
-	BeforeHandler Handler
-	AfterHandler  Handler
+	//BeforeHandler Handler
+	//AfterHandler  Handler
 }
 
 type Handler func(*ewa.Context, CRUD, Identity, *QueryParams, *Body) (int, error)
@@ -147,16 +147,16 @@ func (r *CRUD) SetExcludes(excludes ...string) *CRUD {
 }
 
 // SetBeforeHandler Установка обработчика до действий в бд
-func (r *CRUD) SetBeforeHandler(h Handler) *CRUD {
-	r.BeforeHandler = h
+/*func (r *CRUD) SetBeforeHandler(h Handler) *CRUD {
+	before = h
 	return r
-}
+}*/
 
 // SetAfterHandler Установка обработчика после действий в бд
-func (r *CRUD) SetAfterHandler(h Handler) *CRUD {
-	r.AfterHandler = h
+/*func (r *CRUD) SetAfterHandler(h Handler) *CRUD {
+	after = h
 	return r
-}
+}*/
 
 // NewIdentity Извлечение идентификации
 func NewIdentity(identity *security.Identity) (i Identity) {
@@ -209,7 +209,7 @@ func (r *CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r CRUD) erro
 }
 
 // ReadHandler Обработчик получения записей
-func (r *CRUD) ReadHandler(c *ewa.Context) error {
+func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
@@ -231,8 +231,8 @@ func (r *CRUD) ReadHandler(c *ewa.Context) error {
 	}
 
 	// Обработчик до обращения в бд
-	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, *r, identity, queryParams, nil); err != nil {
+	if before != nil {
+		if status, err := before(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -246,8 +246,8 @@ func (r *CRUD) ReadHandler(c *ewa.Context) error {
 		record.Excludes(r.Excludes...)
 
 		// Обработчик после обращению в бд
-		if r.AfterHandler != nil {
-			if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
+		if after != nil {
+			if status, err := after(c, *r, identity, queryParams, nil); err != nil {
 				return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 			}
 		}
@@ -265,8 +265,8 @@ func (r *CRUD) ReadHandler(c *ewa.Context) error {
 	records.Excludes(r.Excludes...)
 
 	// Обработчик после обращению в бд
-	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
+	if after != nil {
+		if status, err := after(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -275,7 +275,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context) error {
 }
 
 // CreateHandler Обработчик для создания записей
-func (r *CRUD) CreateHandler(c *ewa.Context) error {
+func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
@@ -293,8 +293,8 @@ func (r *CRUD) CreateHandler(c *ewa.Context) error {
 	}
 
 	// Обработчик до обращения в бд
-	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, *r, identity, queryParams, body); err != nil {
+	if before != nil {
+		if status, err := before(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -312,8 +312,8 @@ func (r *CRUD) CreateHandler(c *ewa.Context) error {
 		}
 
 		// Обработчик после обращению в бд
-		if r.AfterHandler != nil {
-			if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
+		if after != nil {
+			if status, err := after(c, *r, identity, queryParams, body); err != nil {
 				return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 			}
 		}
@@ -327,8 +327,8 @@ func (r *CRUD) CreateHandler(c *ewa.Context) error {
 	}
 
 	// Обработчик после обращению в бд
-	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
+	if after != nil {
+		if status, err := after(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -337,7 +337,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context) error {
 }
 
 // UpdateHandler Обновление записей
-func (r *CRUD) UpdateHandler(c *ewa.Context) error {
+func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 
 	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
@@ -360,8 +360,8 @@ func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 	}
 
 	// Обработчик до обращения в бд
-	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, *r, identity, queryParams, body); err != nil {
+	if before != nil {
+		if status, err := before(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -372,8 +372,8 @@ func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 	}
 
 	// Обработчик после обращению в бд
-	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, *r, identity, queryParams, body); err != nil {
+	if after != nil {
+		if status, err := after(c, *r, identity, queryParams, body); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -382,7 +382,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context) error {
 }
 
 // DeleteHandler Обработчик удаления записей
-func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
+func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) {
 
 	r.SetModelName(r.TableTypes.Get(c, HeaderTableType))
 
@@ -400,8 +400,8 @@ func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
 	}
 
 	// Обработчик до обращения в бд
-	if r.BeforeHandler != nil {
-		if status, err := r.BeforeHandler(c, *r, identity, queryParams, nil); err != nil {
+	if before != nil {
+		if status, err := before(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -412,8 +412,8 @@ func (r *CRUD) DeleteHandler(c *ewa.Context) (err error) {
 	}
 
 	// Обработчик после обращению в бд
-	if r.AfterHandler != nil {
-		if status, err := r.AfterHandler(c, *r, identity, queryParams, nil); err != nil {
+	if after != nil {
+		if status, err := after(c, *r, identity, queryParams, nil); err != nil {
 			return c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}

@@ -5,7 +5,7 @@ import "fmt"
 type IAudit interface {
 	String(statusCode int, data string) (int, string)
 	JSON(statusCode int, v any) (int, any)
-	Insert(tableName, action string, identity Identity, path string)
+	Insert(action, tableName string, identity Identity, path string)
 }
 
 type IHandlers interface {

@@ -15,6 +15,7 @@ type CRUD struct {
 	Excludes    []string
 	TableTypes  TableTypes
 	StatusDict  StatusDict
+	Variables   map[string]any
 
 	IAudit
 	IHandlers
@@ -71,7 +72,7 @@ func New(h IHandlers) *CRUD {
 	return &CRUD{
 		IHandlers:  h,
 		IAudit:     new(audit),
-		IResponse:  new(response),
+		IResponse:  new(Response),
 		StatusDict: errDict,
 	}
 }
@@ -94,9 +95,36 @@ func (r *CRUD) SetIResponse(resp IResponse) *CRUD {
 	return r
 }
 
-// SetHeader Установка заголовков
-func (r *CRUD) SetHeader(key, value string, isDefault ...bool) *CRUD {
+// SetVariable Установка интерфейса для аудита
+func (r *CRUD) SetVariable(key string, value any) *CRUD {
+	if r.Variables == nil {
+		r.Variables = make(map[string]any)
+	}
+	r.Variables[key] = value
+	return r
+}
+
+// Is Проверка переменной на существование
+func (r *CRUD) Is(key string) (ok bool) {
+	_, ok = r.Variables[key]
+	return ok
+}
+
+// SetTableType Установка заголовков
+func (r *CRUD) SetTableType(key, value string, isDefault ...bool) *CRUD {
 	r.TableTypes = r.TableTypes.Add(key, value, isDefault...)
+	return r
+}
+
+// SetTableTypeTable Установка заголовков Table-Type:table
+func (r *CRUD) SetTableTypeTable(value string, isDefault ...bool) *CRUD {
+	r.TableTypes = r.TableTypes.Add("table", value, isDefault...)
+	return r
+}
+
+// SetTableTypeView Установка заголовков Table-Type:view
+func (r *CRUD) SetTableTypeView(value string, isDefault ...bool) *CRUD {
+	r.TableTypes = r.TableTypes.Add("view", value, isDefault...)
 	return r
 }
 

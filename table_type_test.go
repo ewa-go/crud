@@ -6,11 +6,11 @@ import (
 )
 
 func TestNewTableType_Get(t *testing.T) {
-	crud := New(nil).SetHeader("table", "schema.table", true).
-		SetHeader("view", "schema.view")
+	crud := New(nil).SetTableType("table", "schema.table", true).
+		SetTableType("view", "schema.view")
 	fmt.Println(crud.TableTypes)
 	fmt.Println(crud.TableTypes.Default())
-	crud.SetHeader("any", "any", true)
+	crud.SetTableType("any", "any", true)
 	fmt.Println(crud.TableTypes)
 	fmt.Println(crud.TableTypes.Default())
 }

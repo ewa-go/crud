@@ -184,12 +184,12 @@ func (q *QueryParams) GetQuery(columns []string) string {
 		query       string
 	)
 
-	if q.ID != nil {
-		values = append(values, q.ID.String())
+	if q.Len() == 0 && q.ID == nil {
+		return ""
 	}
 
-	if q.Len() == 0 {
-		return ""
+	if q.ID != nil {
+		values = append(values, q.ID.String())
 	}
 
 	for key, value := range q.m {

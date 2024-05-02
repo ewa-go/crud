@@ -5,12 +5,17 @@ import (
 	"testing"
 )
 
+var crud = New(nil).SetTableTypeTable("schema.table", true).
+	SetTableTypeView("schema.view").SetTableType("any", "any")
+
 func TestNewTableType_Get(t *testing.T) {
-	crud := New(nil).SetTableType("table", "schema.table", true).
-		SetTableType("view", "schema.view")
-	fmt.Println(crud.TableTypes)
-	fmt.Println(crud.TableTypes.Default())
-	crud.SetTableType("any", "any", true)
-	fmt.Println(crud.TableTypes)
+	fmt.Println(crud.TableTypes.Get("table"))
+	fmt.Println(crud.TableTypes.Get("view"))
+	fmt.Println(crud.TableTypes.Get("any"))
+	// Если передать пустой заголовок, то вернётся значение по-умолчанию
+	fmt.Println(crud.TableTypes.Get(""))
+}
+
+func TestTableType_Default(t *testing.T) {
 	fmt.Println(crud.TableTypes.Default())
 }

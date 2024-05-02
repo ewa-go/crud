@@ -1,7 +1,5 @@
 package crud
 
-import "github.com/ewa-go/ewa"
-
 type TableType struct {
 	Key, Value string
 	IsDefault  bool
@@ -30,16 +28,14 @@ func (h TableTypes) Default() string {
 
 // Get Извлечь из заголовков тип таблицы.
 // Если заголовок не найден, то возвращается тип таблицы по-умолчанию
-func (h TableTypes) Get(c *ewa.Context, key string) string {
-	header := c.Get(key)
+func (h TableTypes) Get(header string) (s string) {
 	for _, hh := range h {
 		if hh.Key == header {
-			header = hh.Value
-			break
+			return hh.Value
+		}
+		if hh.IsDefault {
+			s = hh.Value
 		}
 	}
-	if header == "" {
-		header = h.Default()
-	}
-	return header
+	return
 }

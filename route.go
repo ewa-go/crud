@@ -169,24 +169,26 @@ func NewIdentity(identity *security.Identity) (i Identity) {
 }
 
 // NewQueryParams Извлечение параметров адресной строки
-func (r *CRUD) NewQueryParams(c *ewa.Context) (*QueryParams, error) {
+func (r *CRUD) NewQueryParams(c *ewa.Context, isFilter bool) (*QueryParams, error) {
 
-	// Получаем фильтр
-	body := c.Body()
-	filterParam := c.QueryParam(filterParamName)
-	if len(filterParam) > 0 {
-		body = []byte(filterParam)
-	}
-	// Получаем фильтр
-	filter, err := NewFilter(body)
-	if err != nil {
-		return nil, err
+	var queryParams QueryParams
+	if isFilter {
+		// Получаем фильтр
+		body := c.Body()
+		filterParam := c.QueryParam(filterParamName)
+		if len(filterParam) > 0 {
+			body = []byte(filterParam)
+		}
+		// Получаем фильтр
+		filter, err := NewFilter(body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Применение фильтра для запроса
+		queryParams.Filter = &filter
 	}
 
-	// Применение фильтра для запроса
-	queryParams := QueryParams{
-		Filter: &filter,
-	}
 	paramId := c.Params(r.FieldIdName)
 	if len(paramId) > 0 {
 		queryParams.ID = QueryFormat(r.FieldIdName, paramId)
@@ -225,7 +227,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 		return c.JSON(r.JSON(200, r.Columns(r.ModelName, fields...)))
 	}
 
-	queryParams, err := r.NewQueryParams(c)
+	queryParams, err := r.NewQueryParams(c, true)
 	if err != nil {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
@@ -287,7 +289,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
-	queryParams, err := r.NewQueryParams(c)
+	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
@@ -352,7 +354,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 	defer r.Insert(Updated, r.ModelName, identity, c.Path())
 
 	// Получаем аргументы адресной строки
-	queryParams, err := r.NewQueryParams(c)
+	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
@@ -397,7 +399,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) 
 	defer r.Insert(Deleted, r.ModelName, identity, c.Path())
 
 	// Получаем аргументы адресной строки
-	queryParams, err := r.NewQueryParams(c)
+	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
 		return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}

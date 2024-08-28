@@ -89,7 +89,7 @@ func QueryFormat(key, value string) *QueryParam {
 		znak = "="
 	)
 	key = strings.Trim(key, " ")
-	r := regexp.MustCompile(`\[(>|<|>-|<-|!|<>|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
+	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
 		matches := r.FindStringSubmatch(key)
 		if len(matches) == 2 {
@@ -118,12 +118,18 @@ func QueryFormat(key, value string) *QueryParam {
 				znak = "not similar to"
 			case ":":
 				znak = "between"
-				r = regexp.MustCompile(`^\[('.+'):('.+')]$`)
+				r = regexp.MustCompile(`^\[(.+):(.+)]$`)
 				if r.MatchString(value) {
 					matches = r.FindStringSubmatch(value)
 					if len(matches) == 3 {
 						value = fmt.Sprintf("'%s' and '%s'", matches[1], matches[2])
 					}
+				}
+			case "->", "->>":
+				a := strings.Split(value, "=")
+				if len(a) == 2 {
+					q := QueryFormat(a[0], a[1])
+					value = fmt.Sprintf("'%s' %s %s", q.Key, q.Znak, q.Value)
 				}
 			}
 		}
@@ -157,7 +163,7 @@ func QueryFormat(key, value string) *QueryParam {
 			}
 		}
 	}
-	if len(value) > 0 && znak != "between" {
+	if len(value) > 0 && znak != "between" && znak != "->" && znak != "->>" {
 		switch strings.ToLower(value) {
 		case "null", "true", "false":
 		default:

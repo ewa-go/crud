@@ -305,12 +305,12 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 				}
 			}
 
-			id, err := r.SetRecord(r.ModelName, body.ToArrayMap(i), nil)
+			returning, err := r.SetRecord(r.ModelName, body.ToArrayMap(i), nil)
 			if err != nil {
-				resp = append(resp, r.Created(id, err))
+				resp = append(resp, r.Created(returning, err))
 				continue
 			}
-			resp = append(resp, r.Created(id, nil))
+			resp = append(resp, r.Created(returning, nil))
 		}
 
 		// Обработчик после обращению в бд
@@ -330,7 +330,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 		}
 	}
 
-	id, err := r.SetRecord(r.ModelName, body.ToMap(), nil)
+	returning, err := r.SetRecord(r.ModelName, body.ToMap(), nil)
 	if err != nil {
 		return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
@@ -342,7 +342,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 		}
 	}
 
-	return c.JSON(200, r.Created(id, nil))
+	return c.JSON(200, r.Created(returning, nil))
 }
 
 // UpdateHandler Обновление записей

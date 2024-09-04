@@ -10,7 +10,7 @@ type IAudit interface {
 
 type IHandlers interface {
 	Columns(tableName string, fields ...string) []string
-	SetRecord(tableName string, data Map, params *QueryParams) (uint, error)
+	SetRecord(tableName string, data Map, params *QueryParams) (any, error)
 	GetRecord(tableName string, params *QueryParams) (Map, error)
 	GetRecords(tableName string, params *QueryParams) (Maps, int64, error)
 	UpdateRecord(tableName string, data Map, params *QueryParams) error

@@ -1,11 +1,11 @@
 package crud
 
 const (
-	Read    = "Read"
-	Created = "Created"
-	Updated = "Updated"
-	Deleted = "Deleted"
-	Failed  = "Failed"
+	Read    = "READ"
+	Created = "CREATED"
+	Updated = "UPDATED"
+	Deleted = "DELETED"
+	Failed  = "FAILED"
 )
 
 const (

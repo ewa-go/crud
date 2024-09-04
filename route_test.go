@@ -38,7 +38,7 @@ func (c *Handlers) Columns(tableName string, fields ...string) []string {
 	return []string{"id", "name"}
 }
 
-func (c *Handlers) SetRecord(tableName string, data Map, params *QueryParams) (uint, error) {
+func (c *Handlers) SetRecord(tableName string, data Map, params *QueryParams) (any, error) {
 	fmt.Println("SetRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("data: %v\n", data)

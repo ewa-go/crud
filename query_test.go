@@ -34,6 +34,18 @@ func TestParams(t *testing.T) {
 	q.Set("name", QueryFormat("name[:]", "[01-08-2024:31-08-2024]"))
 	query = q.GetQuery(h.Columns("table"))
 	assertEq(t, query, `"id" = '4' and "name" between '01-08-2024' and '31-08-2024'`)
+
+	q = QueryParams{}
+	q.ID = QueryFormat("id", "5")
+	q.Set("name", QueryFormat("name[any]", "success"))
+	query = q.GetQuery(h.Columns("table"))
+	assertEq(t, query, `"id" = '5' and 'success'  = any("name") `)
+
+	q = QueryParams{}
+	q.ID = QueryFormat("id", "6")
+	q.Set("name", QueryFormat("name[!some]", "success"))
+	query = q.GetQuery(h.Columns("table"))
+	assertEq(t, query, `"id" = '6' and 'success'  != some("name") `)
 }
 
 func TestJSON(t *testing.T) {

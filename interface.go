@@ -1,41 +1,58 @@
 package crud
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/ewa-go/ewa"
+	"time"
+)
 
 type IAudit interface {
-	String(statusCode int, data string) (int, string)
-	JSON(statusCode int, v any) (int, any)
-	Insert(action, tableName string, identity Identity, path string)
+	Take(statusCode int, v any)
+	Exec(action string, c *ewa.Context, r *CRUD)
 }
 
 type IHandlers interface {
 	Columns(tableName string, fields ...string) []string
-	SetRecord(tableName string, data Map, params *QueryParams) (any, error)
+	SetRecord(tableName string, data *Body, params *QueryParams) (any, error)
 	GetRecord(tableName string, params *QueryParams) (Map, error)
 	GetRecords(tableName string, params *QueryParams) (Maps, int64, error)
-	UpdateRecord(tableName string, data Map, params *QueryParams) error
-	DeleteRecord(tableName string, params *QueryParams) error
+	UpdateRecord(tableName string, data *Body, params *QueryParams) (any, error)
+	DeleteRecord(tableName string, params *QueryParams) (any, error)
 }
 
 type IResponse interface {
-	Read(id any, data any, err error) any
-	Created(id interface{}, err error) any
-	Updated(id interface{}, err error) any
-	Deleted(id interface{}, err error) any
+	Send(c *ewa.Context, state string, status int, data any) error
 }
 
-type audit struct{}
-
-func (a audit) String(statusCode int, data string) (int, string) {
-	return statusCode, data
+type audit struct {
+	Author, TableName, Path, Body, Action string
+	Datetime                              time.Time
+	Status                                int
 }
 
-func (a audit) JSON(statusCode int, v any) (int, any) {
-	return statusCode, v
+func (a *audit) String() string {
+	return fmt.Sprintf("%s %s [%s] %s %d %s", a.Datetime, a.TableName, a.Action, a.Author, a.Status, a.Path)
 }
 
-func (a audit) Insert(tableName, action string, identity Identity, path string) {
-	fmt.Printf("%s %s [%s] %s %s", identity.Datetime, tableName, action, identity.Author, path)
+func (a *audit) Take(statusCode int, v any) {
+	body, _ := json.Marshal(v)
+	a.Body = string(body)
+	a.Status = statusCode
+}
+
+func (a *audit) Exec(action string, c *ewa.Context, r *CRUD) {
+	a.TableName = r.ModelName
+	a.Action = action
+	if c.Identity != nil {
+		a.Author = c.Identity.Username
+	}
+	a.Path = c.Path()
+	a.InsertToDB()
+}
+
+func (a *audit) InsertToDB() {
+	fmt.Println(a)
 }
 
 type functions struct{}
@@ -44,7 +61,7 @@ func (f functions) Columns(tableName string, fields ...string) []string {
 	return nil
 }
 
-func (f functions) SetRecord(tableName string, data Map, params *QueryParams) (uint, error) {
+func (f functions) SetRecord(tableName string, data *Body, params *QueryParams) (any, error) {
 	return 0, nil
 }
 
@@ -56,10 +73,10 @@ func (f functions) GetRecords(tableName string, params *QueryParams) (Maps, int6
 	return nil, 0, nil
 }
 
-func (f functions) UpdateRecord(tableName string, data Map, params *QueryParams) error {
-	return nil
+func (f functions) UpdateRecord(tableName string, data *Body, params *QueryParams) (any, error) {
+	return nil, nil
 }
 
-func (f functions) DeleteRecord(tableName string, params *QueryParams) error {
-	return nil
+func (f functions) DeleteRecord(tableName string, params *QueryParams) (any, error) {
+	return nil, nil
 }

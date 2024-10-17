@@ -23,11 +23,13 @@ func (a *Audit) JSON(statusCode int, v any) (int, any) {
 	return statusCode, v
 }
 
-func (a *Audit) Insert(tableName, action string, identity Identity, path string) {
-	a.Table = tableName
+func (a *Audit) Take(statusCode int, v any) {}
+
+func (a *Audit) Exec(action string, c *ewa.Context, r *CRUD) {
+	//a.Table = tableName
 	a.Action = action
-	a.Author = identity.Author
-	a.Path = path
+	a.Author = c.Identity.Username
+	a.Path = c.Path()
 }
 
 type Handlers struct{}
@@ -38,12 +40,16 @@ func (c *Handlers) Columns(tableName string, fields ...string) []string {
 	return []string{"id", "name"}
 }
 
-func (c *Handlers) SetRecord(tableName string, data Map, params *QueryParams) (any, error) {
+func (c *Handlers) SetRecord(tableName string, data *Body, params *QueryParams) (any, error) {
+	if data.IsArray {
+		fmt.Println(data.Array)
+		return "result", nil
+	}
 	fmt.Println("SetRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("data: %v\n", data)
 	fmt.Printf("params: %v\n", params)
-	return 0, nil
+	return "result", nil
 }
 
 func (c *Handlers) GetRecord(tableName string, params *QueryParams) (Map, error) {
@@ -67,19 +73,19 @@ func (c *Handlers) GetRecords(tableName string, params *QueryParams) (Maps, int6
 	return data, 2, nil
 }
 
-func (c *Handlers) UpdateRecord(tableName string, data Map, params *QueryParams) error {
+func (c *Handlers) UpdateRecord(tableName string, data *Body, params *QueryParams) (any, error) {
 	fmt.Println("UpdateRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("data: %v\n", data)
 	fmt.Printf("params: %v\n", params)
-	return nil
+	return "result", nil
 }
 
-func (c *Handlers) DeleteRecord(tableName string, params *QueryParams) error {
+func (c *Handlers) DeleteRecord(tableName string, params *QueryParams) (any, error) {
 	fmt.Println("DeleteRecord")
 	fmt.Printf("tableName: %s\n", tableName)
 	fmt.Printf("params: %v\n", params)
-	return nil
+	return "result", nil
 }
 
 var (
@@ -123,9 +129,8 @@ func TestCustomHandler(t *testing.T) {
 			return New(h).
 				SetModelName("table").
 				SetFieldIdName("id").
-				CustomHandler(c, func(c *ewa.Context, r CRUD) error {
-					identity := NewIdentity(c.Identity)
-					defer r.Insert(r.ModelName, Read, identity, c.Path())
+				CustomHandler(c, func(c *ewa.Context, r *CRUD) error {
+					defer r.Exec(Read, c, r)
 					return c.SendString(200, "OK")
 				})
 		},

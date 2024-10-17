@@ -1,61 +1,55 @@
 package crud
 
-import "time"
+import (
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
+	"github.com/ewa-go/ewa"
+	"github.com/ewa-go/ewa/consts"
+	"time"
+)
 
 type Response struct {
-	Id       any       `json:"id" jsonschema:"type=integer"`
-	OK       bool      `json:"ok"`
+	Ok       bool      `json:"ok"`
 	State    string    `json:"state"`
 	Datetime time.Time `json:"datetime"`
-	Message  string    `json:"message"`
 	Data     any       `json:"data,omitempty"`
 }
 
-func (r Response) Read(id any, data any, err error) any {
-	r.Id = id
-	r.State = Read
-	r.Datetime = time.Now()
-	r.Data = data
-	r.OK = true
-	if err != nil {
-		r.Message = err.Error()
-		r.OK = false
+func (r Response) Send(c *ewa.Context, state string, status int, data any) (err error) {
+	var (
+		body        any
+		contentType string
+		content     []byte
+	)
+	switch t := data.(type) {
+	case error:
+		r.Ok = false
+		body = t.Error()
+	default:
+		r.Ok = true
+		body = data
 	}
-	return r
+	switch state {
+	case Created, Updated, Deleted:
+		r.State = state
+		r.Datetime = time.Now()
+		r.Data = body
+		contentType, content, _ = r.accept(c.Get(consts.HeaderAccept), r)
+	case Read:
+		contentType, content, _ = r.accept(c.Get(consts.HeaderAccept), data)
+	}
+	return c.Send(status, contentType, content)
 }
 
-func (r Response) Created(id interface{}, err error) any {
-	r.Id = id
-	r.State = Created
-	r.Datetime = time.Now()
-	r.OK = true
-	if err != nil {
-		r.Message = err.Error()
-		r.OK = false
+func (r Response) accept(header string, data any) (contentType string, content []byte, err error) {
+	switch header {
+	case consts.MIMEApplicationXML, consts.MIMEApplicationXMLCharsetUTF8:
+		content, err = xml.Marshal(data)
+		return consts.MIMEApplicationXMLCharsetUTF8, content, err
+	case consts.MIMEApplicationJSON, consts.MIMEApplicationJSONCharsetUTF8:
+		content, err = json.Marshal(data)
+		return consts.MIMEApplicationXMLCharsetUTF8, content, err
 	}
-	return r
-}
-
-func (r Response) Updated(id interface{}, err error) any {
-	r.Id = id
-	r.State = Updated
-	r.OK = true
-	r.Datetime = time.Now()
-	if err != nil {
-		r.Message = err.Error()
-		r.OK = false
-	}
-	return r
-}
-
-func (r Response) Deleted(id interface{}, err error) any {
-	r.Id = id
-	r.State = Deleted
-	r.Datetime = time.Now()
-	r.OK = true
-	if err != nil {
-		r.Message = err.Error()
-		r.OK = false
-	}
-	return r
+	return consts.MIMEApplicationXMLCharsetUTF8, []byte(fmt.Sprintf("%s", data)), nil
 }

@@ -85,11 +85,12 @@ func (q *QueryParams) Len() int {
 
 func QueryFormat(key, value string) *QueryParam {
 	var (
-		t    string
-		znak = "="
+		t        string
+		znak     = "="
+		isQuotes = true
 	)
 	key = strings.Trim(key, " ")
-	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
+	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|any|!any|some|!some|all|!all|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
 		matches := r.FindStringSubmatch(key)
 		if len(matches) == 2 {
@@ -131,6 +132,16 @@ func QueryFormat(key, value string) *QueryParam {
 					q := QueryFormat(a[0], a[1])
 					value = fmt.Sprintf("'%s' %s %s", q.Key, q.Znak, q.Value)
 				}
+			case "any", "some", "all":
+				znak = fmt.Sprintf(`= %s("%s")`, znak, key)
+				key = "'" + value + "'"
+				value = ""
+				isQuotes = false
+			case "!any", "!some", "!all":
+				znak = fmt.Sprintf(`!= %s("%s")`, znak[1:], key)
+				key = "'" + value + "'"
+				value = ""
+				isQuotes = false
 			}
 		}
 	}
@@ -142,7 +153,7 @@ func QueryFormat(key, value string) *QueryParam {
 			znak = "is not"
 		}
 	}
-	if znak == "=" {
+	if znak == "=" || znak == "!=" || znak == "<>" {
 		r = regexp.MustCompile(`^\[(.+)]$`)
 		if r.MatchString(value) {
 			matches := r.FindStringSubmatch(value)
@@ -158,7 +169,12 @@ func QueryFormat(key, value string) *QueryParam {
 					}
 					values += "'" + m + "'" + z
 				}
-				znak = fmt.Sprintf("in(%s)", values)
+				switch znak {
+				case "=":
+					znak = fmt.Sprintf("in(%s)", values)
+				case "!=", "<>":
+					znak = fmt.Sprintf("not in(%s)", values)
+				}
 				value = ""
 			}
 		}
@@ -171,15 +187,19 @@ func QueryFormat(key, value string) *QueryParam {
 		}
 	}
 	return &QueryParam{
-		Key:   key,
-		Znak:  znak,
-		Value: value,
-		Type:  t,
+		Key:      key,
+		Znak:     znak,
+		Value:    value,
+		Type:     t,
+		IsQuotes: isQuotes,
 	}
 }
 
 func (q *QueryParam) String() string {
-	return fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value)
+	if q.IsQuotes {
+		return fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value)
+	}
+	return fmt.Sprintf("%s %s %s %s", q.Key, q.Type, q.Znak, q.Value)
 }
 
 // GetQuery Формирование запроса

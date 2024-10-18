@@ -83,14 +83,14 @@ func (q *QueryParams) Len() int {
 	return len(q.m)
 }
 
+// QueryFormat Получение параметров из адресной строки
 func QueryFormat(key, value string) *QueryParam {
 	var (
-		t        string
-		znak     = "="
-		isQuotes = true
+		t    string
+		znak = "="
 	)
 	key = strings.Trim(key, " ")
-	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|any|!any|some|!some|all|!all|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
+	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|array|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
 		matches := r.FindStringSubmatch(key)
 		if len(matches) == 2 {
@@ -132,16 +132,11 @@ func QueryFormat(key, value string) *QueryParam {
 					q := QueryFormat(a[0], a[1])
 					value = fmt.Sprintf("'%s' %s %s", q.Key, q.Znak, q.Value)
 				}
-			case "any", "some", "all":
-				znak = fmt.Sprintf(`= %s("%s")`, znak, key)
-				key = "'" + value + "'"
-				value = ""
-				isQuotes = false
-			case "!any", "!some", "!all":
-				znak = fmt.Sprintf(`!= %s("%s")`, znak[1:], key)
-				key = "'" + value + "'"
-				value = ""
-				isQuotes = false
+			case "array":
+				if v, ok := IsArray(value); ok {
+					znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					value = ""
+				}
 			}
 		}
 	}
@@ -154,28 +149,21 @@ func QueryFormat(key, value string) *QueryParam {
 		}
 	}
 	if znak == "=" || znak == "!=" || znak == "<>" {
+		if v, ok := IsArray(value); ok {
+			var values = ArrayQuotesToString(v, ",")
+			switch znak {
+			case "=":
+				znak = fmt.Sprintf("in(%s)", values)
+			case "!=", "<>":
+				znak = fmt.Sprintf("not in(%s)", values)
+			}
+			value = ""
+		}
 		r = regexp.MustCompile(`^\[(.+)]$`)
 		if r.MatchString(value) {
 			matches := r.FindStringSubmatch(value)
 			if len(matches) == 2 {
-				var (
-					values string
-					z      = ","
-					array  = strings.Split(matches[1], ",")
-				)
-				for i, m := range array {
-					if i == len(array)-1 {
-						z = ""
-					}
-					values += "'" + m + "'" + z
-				}
-				switch znak {
-				case "=":
-					znak = fmt.Sprintf("in(%s)", values)
-				case "!=", "<>":
-					znak = fmt.Sprintf("not in(%s)", values)
-				}
-				value = ""
+
 			}
 		}
 	}
@@ -191,15 +179,40 @@ func QueryFormat(key, value string) *QueryParam {
 		Znak:     znak,
 		Value:    value,
 		Type:     t,
-		IsQuotes: isQuotes,
+		IsQuotes: true,
 	}
 }
 
+// IsArray Проверка на массив для IN и && ARRAY[]
+func IsArray(value string) (string, bool) {
+	r := regexp.MustCompile(`^\[(.+)]$`)
+	if r.MatchString(value) {
+		matches := r.FindStringSubmatch(value)
+		if len(matches) == 2 {
+			return matches[1], true
+		}
+	}
+	return "", false
+}
+
+// ArrayQuotesToString Экранирование одинарными кавычками элементов массива
+func ArrayQuotesToString(s string, sep string) (v string) {
+	var array = strings.Split(s, sep)
+	for i, m := range array {
+		if i == len(array)-1 {
+			sep = ""
+		}
+		v += "'" + m + "'" + sep
+	}
+	return
+}
+
+// Формирование готовой строки запроса
 func (q *QueryParam) String() string {
 	if q.IsQuotes {
-		return fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value)
+		return strings.Trim(fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value), " ")
 	}
-	return fmt.Sprintf("%s %s %s %s", q.Key, q.Type, q.Znak, q.Value)
+	return strings.Trim(fmt.Sprintf("%s %s %s %s", q.Key, q.Type, q.Znak, q.Value), " ")
 }
 
 // GetQuery Формирование запроса

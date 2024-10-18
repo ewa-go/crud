@@ -27,7 +27,7 @@ func TestParams(t *testing.T) {
 	q.ID = QueryFormat("id", "3")
 	q.Set("name", QueryFormat("name", "[1,2,4]"))
 	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '3' and "name" in('1','2','4') `)
+	assertEq(t, query, `"id" = '3' and "name" in('1','2','4')`)
 
 	q = QueryParams{}
 	q.ID = QueryFormat("id", "4")
@@ -37,15 +37,9 @@ func TestParams(t *testing.T) {
 
 	q = QueryParams{}
 	q.ID = QueryFormat("id", "5")
-	q.Set("name", QueryFormat("name[any]", "success"))
+	q.Set("name", QueryFormat("name[array]", "[success,warning]"))
 	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '5' and 'success'  = any("name") `)
-
-	q = QueryParams{}
-	q.ID = QueryFormat("id", "6")
-	q.Set("name", QueryFormat("name[!some]", "success"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '6' and 'success'  != some("name") `)
+	assertEq(t, query, `"id" = '5' and "name" && ARRAY['success','warning']`)
 }
 
 func TestJSON(t *testing.T) {

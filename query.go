@@ -86,11 +86,12 @@ func (q *QueryParams) Len() int {
 // QueryFormat Получение параметров из адресной строки
 func QueryFormat(key, value string) *QueryParam {
 	var (
-		t    string
-		znak = "="
+		t        string
+		znak     = "="
+		isQuotes = true
 	)
 	key = strings.Trim(key, " ")
-	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|array|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
+	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|array|&&|!array|!&&|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
 		matches := r.FindStringSubmatch(key)
 		if len(matches) == 2 {
@@ -132,9 +133,16 @@ func QueryFormat(key, value string) *QueryParam {
 					q := QueryFormat(a[0], a[1])
 					value = fmt.Sprintf("'%s' %s %s", q.Key, q.Znak, q.Value)
 				}
-			case "array":
+			case "array", "&&":
 				if v, ok := IsArray(value); ok {
 					znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					value = ""
+				}
+			case "!array", "!&&":
+				if v, ok := IsArray(value); ok {
+					znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					key = fmt.Sprintf(`not "%s"`, key)
+					isQuotes = false
 					value = ""
 				}
 			}
@@ -159,13 +167,6 @@ func QueryFormat(key, value string) *QueryParam {
 			}
 			value = ""
 		}
-		r = regexp.MustCompile(`^\[(.+)]$`)
-		if r.MatchString(value) {
-			matches := r.FindStringSubmatch(value)
-			if len(matches) == 2 {
-
-			}
-		}
 	}
 	if len(value) > 0 && znak != "between" && znak != "->" && znak != "->>" {
 		switch strings.ToLower(value) {
@@ -179,7 +180,7 @@ func QueryFormat(key, value string) *QueryParam {
 		Znak:     znak,
 		Value:    value,
 		Type:     t,
-		IsQuotes: true,
+		IsQuotes: isQuotes,
 	}
 }
 
@@ -209,10 +210,11 @@ func ArrayQuotesToString(s string, sep string) (v string) {
 
 // Формирование готовой строки запроса
 func (q *QueryParam) String() string {
+	key := q.Key
 	if q.IsQuotes {
-		return strings.Trim(fmt.Sprintf("\"%s\"%s %s %s", q.Key, q.Type, q.Znak, q.Value), " ")
+		key = `"` + key + `"`
 	}
-	return strings.Trim(fmt.Sprintf("%s %s %s %s", q.Key, q.Type, q.Znak, q.Value), " ")
+	return strings.Trim(fmt.Sprintf("%s %s%s %s", key, q.Type, q.Znak, q.Value), " ")
 }
 
 // GetQuery Формирование запроса

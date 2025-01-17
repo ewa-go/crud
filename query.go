@@ -15,15 +15,17 @@ type QueryParam struct {
 type QueryParams struct {
 	Filter *Filter
 	ID     *QueryParam
+
 	m      map[string]*QueryParam
 	values []string
 }
 
 type Filter struct {
-	Fields []string `json:"fields,omitempty"`
-	Orders []string `json:"orders,omitempty"`
-	Limit  int      `json:"limit,omitempty"`
-	Offset int      `json:"offset,omitempty"`
+	Fields []string               `json:"fields,omitempty"`
+	Orders []string               `json:"orders,omitempty"`
+	Limit  int                    `json:"limit,omitempty"`
+	Offset int                    `json:"offset,omitempty"`
+	Vars   map[string]interface{} `json:"vars,omitempty"`
 }
 
 type Map map[string]interface{}
@@ -234,13 +236,14 @@ func (q *QueryParams) GetQuery(columns []string) string {
 	}
 
 	for key, value := range q.m {
-		if key == "*" {
+		if key == OrParamName || key == ExtraParamName {
 			continue
 		}
 		values = append(values, value.String())
 	}
 
-	if value, ok := q.m["*"]; ok {
+	// Формирование полей для поиска везде OR
+	if value, ok := q.m[OrParamName]; ok {
 		// Параметр адресной строки *=
 		if q.Filter != nil && len(q.Filter.Fields) > 0 {
 			for _, field := range q.Filter.Fields {
@@ -271,4 +274,12 @@ func (q *QueryParams) GetQuery(columns []string) string {
 		}
 	}
 	return query
+}
+
+// GetVar Найти значение
+func (f Filter) GetVar(key string) any {
+	if value, ok := f.Vars[key]; ok {
+		return value
+	}
+	return nil
 }

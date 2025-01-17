@@ -10,6 +10,8 @@ const (
 
 const (
 	filterParamName = "~"
+	OrParamName     = "*"
+	ExtraParamName  = "+"
 )
 
 const (

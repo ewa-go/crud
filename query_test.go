@@ -58,6 +58,12 @@ func TestParams(t *testing.T) {
 	q.Set("name", QueryFormat("name[!&&]", "[success,warning]"))
 	query = q.GetQuery(h.Columns("table"))
 	assertEq(t, query, `"id" = '8' and not "name" && ARRAY['success','warning']`)
+
+	q = QueryParams{}
+	q.ID = QueryFormat("id", "9")
+	q.Set("name", QueryFormat("name[!]", "[1,2,4]"))
+	query = q.GetQuery(h.Columns("table"))
+	assertEq(t, query, `"id" = '9' and "name" not in('1','2','4')`)
 }
 
 func TestJSON(t *testing.T) {
@@ -78,4 +84,24 @@ func TestJSON(t *testing.T) {
 	q.Set("result", QueryFormat("result[->>]", "type[:]=[1:2]"))
 	query = q.GetQuery(h.Columns("table"))
 	assertEq(t, query, `"id" = '6' and "result" ->> 'type' between '1' and '2'`)
+}
+
+func TestFilter(t *testing.T) {
+	data := `{
+		"fields": [],
+		"orders": [],
+		"limit": 10,
+		"offset": 0,
+		"vars": {
+			"is_server_member_role": true,
+			"is_server_group": false
+		}
+	}`
+	f, err := NewFilter([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, f.GetVar("is_server_member_role"), true)
+	assertEq(t, f.GetVar("is_server_group"), false)
+	assertEq(t, f.GetVar("any"), nil)
 }

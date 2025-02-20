@@ -66,6 +66,15 @@ func TestParams(t *testing.T) {
 	assertEq(t, query, `"id" = '9' and "name" not in('1','2','4')`)
 }
 
+func TestOR(t *testing.T) {
+	q := QueryParams{}
+	q.ID = QueryFormat("id", "1")
+	q.Set("name", QueryFormat("name", "Name"))
+	q.Set("index", QueryFormat("[|]index", "2"))
+	query := q.GetQuery(h.Columns("table"))
+	assertEq(t, query, `"id" = '1' and "name" = 'Name' or "index" = '2'`)
+}
+
 func TestJSON(t *testing.T) {
 	q := QueryParams{}
 	q.ID = QueryFormat("id", "5")

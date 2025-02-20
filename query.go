@@ -8,8 +8,12 @@ import (
 )
 
 type QueryParam struct {
-	Key, Znak, Value, Type string
-	IsQuotes               bool
+	Key      string
+	Znak     string
+	Value    string
+	Type     string
+	IsQuotes bool
+	IsOR     bool
 }
 
 type QueryParams struct {
@@ -91,8 +95,13 @@ func QueryFormat(key, value string) *QueryParam {
 		t        string
 		znak     = "="
 		isQuotes = true
+		isOR     = false
 	)
 	key = strings.Trim(key, " ")
+	if len(key) > 3 && key[:3] == "[|]" {
+		isOR = true
+		key = key[3:]
+	}
 	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|array|&&|!array|!&&|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
 	if r.MatchString(key) {
 		matches := r.FindStringSubmatch(key)
@@ -183,6 +192,7 @@ func QueryFormat(key, value string) *QueryParam {
 		Value:    value,
 		Type:     t,
 		IsQuotes: isQuotes,
+		IsOR:     isOR,
 	}
 }
 
@@ -222,7 +232,7 @@ func (q *QueryParam) String() string {
 // GetQuery Формирование запроса
 func (q *QueryParams) GetQuery(columns []string) string {
 	var (
-		values      []string
+		values      []*QueryParam
 		valueFields []string
 		query       string
 	)
@@ -232,14 +242,14 @@ func (q *QueryParams) GetQuery(columns []string) string {
 	}
 
 	if q.ID != nil {
-		values = append(values, q.ID.String())
+		values = append(values, q.ID)
 	}
 
 	for key, value := range q.m {
 		if key == OrParamName || key == ExtraParamName {
 			continue
 		}
-		values = append(values, value.String())
+		values = append(values, value)
 	}
 
 	// Формирование полей для поиска везде OR
@@ -266,7 +276,17 @@ func (q *QueryParams) GetQuery(columns []string) string {
 		query = "(" + strings.Join(valueFields, " or ") + ")"
 	}
 	if len(values) > 0 {
-		v := strings.Join(values, " and ")
+		var v string
+		for i, value := range values {
+			var spliter string
+			if i > 0 {
+				spliter = " and "
+			}
+			if value.IsOR {
+				spliter = " or "
+			}
+			v += spliter + value.String()
+		}
 		if len(query) > 0 {
 			query += " and " + v
 		} else {

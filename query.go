@@ -146,12 +146,14 @@ func QueryFormat(key, value string) *QueryParam {
 				}
 			case "array", "&&":
 				if v, ok := IsArray(value); ok {
-					znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					//znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					znak = fmt.Sprintf("&& ARRAY[%s]", v)
 					value = ""
 				}
 			case "!array", "!&&":
 				if v, ok := IsArray(value); ok {
-					znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					//znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
+					znak = fmt.Sprintf("&& ARRAY[%s]", v)
 					key = fmt.Sprintf(`not "%s"`, key)
 					isQuotes = false
 					value = ""

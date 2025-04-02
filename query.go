@@ -2,7 +2,6 @@ package crud
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -10,8 +9,9 @@ import (
 type QueryParam struct {
 	Key      string
 	Znak     string
-	Value    string
-	Type     string
+	Value    any
+	Type     Type
+	DataType string
 	IsQuotes bool
 	IsOR     bool
 }
@@ -20,8 +20,8 @@ type QueryParams struct {
 	Filter *Filter
 	ID     *QueryParam
 
-	m      map[string]*QueryParam
-	values []string
+	m      map[string][]*QueryParam
+	values []*QueryParam
 }
 
 type Filter struct {
@@ -35,6 +35,19 @@ type Filter struct {
 type Map map[string]interface{}
 
 type Maps []map[string]interface{}
+
+type Type string
+
+const (
+	ValueType Type = "value"
+	ArrayType Type = "array"
+	RangeType Type = "range"
+)
+
+type Range struct {
+	From string
+	To   string
+}
 
 // NewFilter Инициализация фильтра для таблиц
 func NewFilter(data []byte) (f Filter, err error) {
@@ -67,21 +80,28 @@ func (m Maps) Excludes(e ...string) {
 }
 
 // Values Строковый массив для sql запроса
-func (q *QueryParams) Values() []string {
+func (q *QueryParams) Values() []*QueryParam {
 	return q.values
 }
 
 func (q *QueryParams) Set(key string, param *QueryParam) {
 	if q.m == nil {
-		q.m = make(map[string]*QueryParam)
+		q.m = make(map[string][]*QueryParam)
 	}
-	q.m[key] = param
-	q.values = append(q.values, param.String())
+	if param != nil {
+		q.m[key] = append(q.m[key], param)
+		q.values = append(q.values, param)
+	}
 }
 
 // Get Вернуть карту параметров
-func (q *QueryParams) Get() map[string]*QueryParam {
+func (q *QueryParams) Get() map[string][]*QueryParam {
 	return q.m
+}
+
+// GetParams Вернуть параметры
+func (q *QueryParams) GetParams(key string) []*QueryParam {
+	return q.m[key]
 }
 
 // Len Длина карты
@@ -90,218 +110,57 @@ func (q *QueryParams) Len() int {
 }
 
 // QueryFormat Получение параметров из адресной строки
-func QueryFormat(key, value string) *QueryParam {
-	var (
-		t        string
-		znak     = "="
-		isQuotes = true
-		isOR     = false
-	)
-	key = strings.Trim(key, " ")
-	if len(key) > 3 && key[:3] == "[|]" {
-		isOR = true
-		key = key[3:]
+func QueryFormat(r *CRUD, key, value string) *QueryParam {
+	q, _ := r.QueryFormat(key, value)
+	return q
+}
+
+// QueryFormat Получение параметров из адресной строки
+func (r *CRUD) QueryFormat(key, value string) (q *QueryParam, err error) {
+
+	q = &QueryParam{
+		Key:      strings.Trim(key, " "),
+		Znak:     "=",
+		IsQuotes: true,
+		Type:     ValueType,
+		DataType: "",
 	}
-	r := regexp.MustCompile(`\[(->|->>|>|<|>-|<-|!|<>|array|&&|!array|!&&|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`)
-	if r.MatchString(key) {
-		matches := r.FindStringSubmatch(key)
+	if len(q.Key) > 3 && q.Key[:3] == "[|]" {
+		q.IsOR = true
+		q.Key = q.Key[3:]
+	}
+	rgx := regexp.MustCompile(r.Pattern())
+	if rgx.MatchString(q.Key) {
+		matches := rgx.FindStringSubmatch(q.Key)
 		if len(matches) == 2 {
-			znak = matches[1]
-			key = r.ReplaceAllString(key, "")
-			switch znak {
-			case "!":
-				znak = "!="
-			case ">-":
-				znak = ">="
-			case "<-":
-				znak = "<="
-			case "%":
-				t += "::text"
-				znak = "like"
-			case "!%":
-				t += "::text"
-				znak = "not like"
-			case "~", "!~", "~*", "!~*":
-				t += "::text"
-			case "+":
-				t += "::text"
-				znak = "similar to"
-			case "!+":
-				t += "::text"
-				znak = "not similar to"
-			case ":":
-				znak = "between"
-				r = regexp.MustCompile(`^\[(.+):(.+)]$`)
-				if r.MatchString(value) {
-					matches = r.FindStringSubmatch(value)
-					if len(matches) == 3 {
-						value = fmt.Sprintf("'%s' and '%s'", matches[1], matches[2])
-					}
-				}
-			case "->", "->>":
-				a := strings.Split(value, "=")
-				if len(a) == 2 {
-					q := QueryFormat(a[0], a[1])
-					value = fmt.Sprintf("'%s' %s %s", q.Key, q.Znak, q.Value)
-				}
-			case "array", "&&":
-				if v, ok := IsArray(value); ok {
-					//znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
-					znak = fmt.Sprintf("&& ARRAY[%s]", v)
-					value = ""
-				}
-			case "!array", "!&&":
-				if v, ok := IsArray(value); ok {
-					//znak = fmt.Sprintf("&& ARRAY[%s]", ArrayQuotesToString(v, ","))
-					znak = fmt.Sprintf("&& ARRAY[%s]", v)
-					key = fmt.Sprintf(`not "%s"`, key)
-					isQuotes = false
-					value = ""
-				}
-			}
+			q.Znak = matches[1]
+			q.Key = rgx.ReplaceAllString(q.Key, "")
 		}
 	}
-	if strings.ToLower(value) == "null" {
-		switch znak {
-		case "=":
-			znak = "is"
-		case "!=":
-			znak = "is not"
-		}
+	index := strings.Index(value, "::")
+	if index > -1 {
+		q.DataType = value[index+2:]
+		value = value[:index]
 	}
-	if znak == "=" || znak == "!=" || znak == "<>" {
-		if v, ok := IsArray(value); ok {
-			var values = ArrayQuotesToString(v, ",")
-			switch znak {
-			case "=":
-				znak = fmt.Sprintf("in(%s)", values)
-			case "!=", "<>":
-				znak = fmt.Sprintf("not in(%s)", values)
-			}
-			value = ""
-		}
+	if err = r.Cast(value, q); err != nil {
+		return nil, err
 	}
-	if len(value) > 0 && znak != "between" && znak != "->" && znak != "->>" {
-		switch strings.ToLower(value) {
-		case "null", "true", "false":
-		default:
-			value = "'" + value + "'"
-		}
-	}
-	return &QueryParam{
-		Key:      key,
-		Znak:     znak,
-		Value:    value,
-		Type:     t,
-		IsQuotes: isQuotes,
-		IsOR:     isOR,
-	}
+	return r.Format(r, q)
 }
 
-// IsArray Проверка на массив для IN и && ARRAY[]
-func IsArray(value string) (string, bool) {
-	r := regexp.MustCompile(`^\[(.+)]$`)
-	if r.MatchString(value) {
-		matches := r.FindStringSubmatch(value)
-		if len(matches) == 2 {
-			return matches[1], true
-		}
-	}
-	return "", false
+func (q *QueryParam) IsValue() bool {
+	return q.Type == ValueType
 }
 
-// ArrayQuotesToString Экранирование одинарными кавычками элементов массива
-func ArrayQuotesToString(s string, sep string) (v string) {
-	var array = strings.Split(s, sep)
-	for i, m := range array {
-		if i == len(array)-1 {
-			sep = ""
-		}
-		v += "'" + m + "'" + sep
-	}
-	return
+func (q *QueryParam) IsArray() bool {
+	return q.Type == ArrayType
 }
 
-// Формирование готовой строки запроса
-func (q *QueryParam) String() string {
-	key := q.Key
-	if q.IsQuotes {
-		key = `"` + key + `"`
-	}
-	return strings.Trim(fmt.Sprintf("%s %s%s %s", key, q.Type, q.Znak, q.Value), " ")
-}
-
-// GetQuery Формирование запроса
-func (q *QueryParams) GetQuery(columns []string) string {
-	var (
-		values      []*QueryParam
-		valueFields []string
-		query       string
-	)
-
-	if q.Len() == 0 && q.ID == nil {
-		return ""
-	}
-
-	if q.ID != nil {
-		values = append(values, q.ID)
-	}
-
-	for key, value := range q.m {
-		if key == OrParamName || key == ExtraParamName {
-			continue
-		}
-		values = append(values, value)
-	}
-
-	// Формирование полей для поиска везде OR
-	if value, ok := q.m[OrParamName]; ok {
-		// Параметр адресной строки *=
-		if q.Filter != nil && len(q.Filter.Fields) > 0 {
-			for _, field := range q.Filter.Fields {
-				if _, ok = q.m[field]; !ok {
-					value.Key = field
-					valueFields = append(valueFields, value.String())
-				}
-			}
-		} else {
-			for _, column := range columns {
-				if _, ok = q.m[column]; !ok {
-					value.Key = column
-					valueFields = append(valueFields, value.String())
-				}
-			}
-		}
-	}
-
-	if len(valueFields) > 0 {
-		query = "(" + strings.Join(valueFields, " or ") + ")"
-	}
-	if len(values) > 0 {
-		var v string
-		for i, value := range values {
-			var spliter string
-			if i > 0 {
-				spliter = " and "
-			}
-			if value.IsOR {
-				spliter = " or "
-			}
-			v += spliter + value.String()
-		}
-		if len(query) > 0 {
-			query += " and " + v
-		} else {
-			query = v
-		}
-	}
-	return query
+func (q *QueryParam) IsRange() bool {
+	return q.Type == RangeType
 }
 
 // GetVar Найти значение
 func (f Filter) GetVar(key string) any {
-	if value, ok := f.Vars[key]; ok {
-		return value
-	}
-	return nil
+	return f.Vars[key]
 }

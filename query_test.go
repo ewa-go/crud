@@ -1,7 +1,9 @@
 package crud
 
 import (
+	"fmt"
 	"testing"
+	"time"
 )
 
 func assertEq(t *testing.T, a interface{}, b interface{}) {
@@ -10,89 +12,147 @@ func assertEq(t *testing.T, a interface{}, b interface{}) {
 	}
 }
 
+func assertArrayEq(t *testing.T, a []interface{}, b []interface{}) {
+	if len(a) != len(b) {
+		t.Fatalf("Values did not match, a: %v, b: %v\n", a, b)
+	}
+	for i, aa := range a {
+		switch at := aa.(type) {
+		case []string, []int, []time.Time:
+			assertArrayStringEq(t, at, b[i])
+		default:
+			assertEq(t, aa, b[i])
+		}
+	}
+}
+
+func assertArrayStringEq(t *testing.T, a interface{}, b interface{}) {
+	if fmt.Sprintf("%v", a) != fmt.Sprintf("%v", b) {
+		t.Fatalf("Values did not match, a: %v, b: %v\n", a, b)
+	}
+}
+
+func getCRUD() *CRUD {
+	return New(new(functions))
+}
+
+func TestName(t *testing.T) {
+	var a any
+	a = []string{"a", "b", "c"}
+	fmt.Println(a)
+}
+
 func TestParams(t *testing.T) {
+	r := getCRUD()
 	q := QueryParams{}
-	q.ID = QueryFormat("id", "1")
-	q.Set("name", QueryFormat("name", "Name"))
-	query := q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '1' and "name" = 'Name'`)
+	q.ID = QueryFormat(r, "id", "1::int")
+	q.Set("name", QueryFormat(r, "name", "Name"))
+	query, values := r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" = ?`)
+	assertArrayEq(t, []any{1, "Name"}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "2")
-	q.Set("*", QueryFormat("*", "Значение"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `("id" = 'Значение' or "name" = 'Значение') and "id" = '2'`)
+	q.ID = QueryFormat(r, "id", "2::int")
+	q.Set("*", QueryFormat(r, "*", "Значение"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `("id" = ? or "name" = ?) and "id" = ?`)
+	assertArrayEq(t, []any{"Значение", "Значение", 2}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "3")
-	q.Set("name", QueryFormat("name", "[1,2,4]"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '3' and "name" in('1','2','4')`)
+	q.ID = QueryFormat(r, "id", "3::int")
+	q.Set("name", QueryFormat(r, "name", "[1,2,3]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" in(?)`)
+	assertArrayEq(t, []any{3, []string{"1", "2", "3"}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "4")
-	q.Set("name", QueryFormat("name[:]", "[01-08-2024:31-08-2024]"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '4' and "name" between '01-08-2024' and '31-08-2024'`)
+	q.ID = QueryFormat(r, "id", "4::int")
+	q.Set("name", QueryFormat(r, "name[:]", "[2024-08-01 00:00:00|2024-08-31 23:59:59]::datetime"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" between ? and ?`)
+	from, err := time.Parse(time.DateTime, "2024-08-01 00:00:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	to, err := time.Parse(time.DateTime, "2024-08-31 23:59:59")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertArrayEq(t, []any{4, []time.Time{from, to}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "5")
-	q.Set("name", QueryFormat("name[array]", "['success','warning']"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '5' and "name" && ARRAY['success','warning']`)
+	q.ID = QueryFormat(r, "id", "5::int")
+	q.Set("name", QueryFormat(r, "name[array]", "[success,warning]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
+	assertArrayEq(t, []any{5, []string{"success", "warning"}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "6")
-	q.Set("name", QueryFormat("name[&&]", "['success','warning']"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '6' and "name" && ARRAY['success','warning']`)
+	q.ID = QueryFormat(r, "id", "6::int")
+	q.Set("name", QueryFormat(r, "name[&&]", "[success,warning]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
+	assertArrayEq(t, []any{6, []string{"success", "warning"}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "7")
-	q.Set("name", QueryFormat("name[!array]", "['success','warning']"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '7' and not "name" && ARRAY['success','warning']`)
+	q.ID = QueryFormat(r, "id", "7::int")
+	q.Set("name", QueryFormat(r, "name[!array]", "[success,warning]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
+	assertArrayEq(t, []any{7, []string{"success", "warning"}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "8")
-	q.Set("name", QueryFormat("name[!&&]", "['success','warning']"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '8' and not "name" && ARRAY['success','warning']`)
+	q.ID = QueryFormat(r, "id", "8")
+	q.Set("name", QueryFormat(r, "name[!&&]", "[success,warning]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
+	assertArrayEq(t, []any{"8", []string{"success", "warning"}}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "9")
-	q.Set("name", QueryFormat("name[!]", "[1,2,4]"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '9' and "name" not in('1','2','4')`)
+	q.ID = QueryFormat(r, "id", "9::int")
+	q.Set("name", QueryFormat(r, "name[!]", "[1,2,4]::int"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" not in(?)`)
+	assertArrayEq(t, []any{9, []int{1, 2, 4}}, values)
 }
 
 func TestOR(t *testing.T) {
+	var err error
+	r := getCRUD()
 	q := QueryParams{}
-	q.ID = QueryFormat("id", "1")
-	q.Set("name", QueryFormat("name", "Name"))
-	q.Set("index", QueryFormat("[|]index", "2"))
-	query := q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '1' and "name" = 'Name' or "index" = '2'`)
+	q.ID, err = r.QueryFormat("id", "1::int")
+	if err != nil {
+		t.Fatal(err)
+	}
+	q.Set("name", QueryFormat(r, "name", "Name"))
+	q.Set("index", QueryFormat(r, "[|]index", "2::int"))
+	query, values := r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" = ? or "index" = ?`)
+	assertArrayEq(t, []any{1, "Name", 2}, values)
 }
 
 func TestJSON(t *testing.T) {
+	r := getCRUD()
 	q := QueryParams{}
-	q.ID = QueryFormat("id", "5")
-	q.Set("result", QueryFormat("result[->>]", "type=2"))
-	query := q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '5' and "result" ->> 'type' = '2'`)
+	q.ID = QueryFormat(r, "id", "1::int")
+	q.Set("result", QueryFormat(r, "result[->>]", "type=2"))
+	query, values := r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "result" ->> ?`)
+	assertArrayEq(t, []any{1, "'type' = '2'"}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "6")
-	q.Set("result", QueryFormat("result[->>]", "type[%]=2%"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '6' and "result" ->> 'type' like '2%'`)
+	q.ID = QueryFormat(r, "id", "2::int")
+	q.Set("result", QueryFormat(r, "result[->>]", "type[%]=2%"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "result" ->> ?`)
+	assertArrayEq(t, []any{2, "'type' like '2%'"}, values)
 
 	q = QueryParams{}
-	q.ID = QueryFormat("id", "6")
-	q.Set("result", QueryFormat("result[->>]", "type[:]=[1:2]"))
-	query = q.GetQuery(h.Columns("table"))
-	assertEq(t, query, `"id" = '6' and "result" ->> 'type' between '1' and '2'`)
+	q.ID = QueryFormat(r, "id", "3::int")
+	q.Set("result", QueryFormat(r, "result[->>]", "type[:]=[1|2]"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "result" ->> ?`)
+	assertArrayEq(t, []any{3, "'type' between '1' and '2'"}, values)
 }
 
 func TestFilter(t *testing.T) {
@@ -113,4 +173,99 @@ func TestFilter(t *testing.T) {
 	assertEq(t, f.GetVar("is_server_member_role"), true)
 	assertEq(t, f.GetVar("is_server_group"), false)
 	assertEq(t, f.GetVar("any"), nil)
+}
+
+func TestCast(t *testing.T) {
+	r := getCRUD()
+	q := QueryParam{}
+	var err error
+	err = r.Cast("text", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = r.Cast("1::int", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, 1)
+	err = r.Cast("-123456789987654::int64", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, int64(-123456789987654))
+	err = r.Cast("1234.5678::float", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, 1234.5677490234375)
+	err = r.Cast("-1234.5678::float64", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, -1234.5678)
+	err = r.Cast("123456789::uint", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, uint64(123456789))
+	err = r.Cast("123456789123321654::uint64", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, uint64(123456789123321654))
+	err = r.Cast("2025-03-28::date", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value.(time.Time).Format(time.DateOnly), "2025-03-28")
+	err = r.Cast("23:52:12::time", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value.(time.Time).Format(time.TimeOnly), "23:52:12")
+	err = r.Cast("2025-03-28 23:52:12::datetime", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value.(time.Time).Format(time.DateTime), "2025-03-28 23:52:12")
+	err = r.Cast("true", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, true)
+	err = r.Cast("false::string", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, "false")
+	err = r.Cast("null", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, nil)
+	err = r.Cast("null::string", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEq(t, q.Value, "null")
+	err = r.Cast("[t1,t2,t3]", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertArrayStringEq(t, q.Value, []string{"t1", "t2", "t3"})
+	err = r.Cast("[t1,t2,t3]::string", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertArrayStringEq(t, q.Value, []string{"t1", "t2", "t3"})
+	err = r.Cast("[1,2,3]::int", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertArrayStringEq(t, q.Value, []int{1, 2, 3})
+	err = r.Cast("[1|10]::int", &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertArrayStringEq(t, q.Value, []int{1, 10})
 }

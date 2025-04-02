@@ -1,82 +1,420 @@
 package crud
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ewa-go/ewa"
+	"github.com/lib/pq"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
-type IAudit interface {
-	Take(statusCode int, v any)
-	Exec(action string, c *ewa.Context, r *CRUD)
-}
-
 type IHandlers interface {
-	Columns(tableName string, fields ...string) []string
-	SetRecord(tableName string, data *Body, params *QueryParams) (any, error)
-	GetRecord(tableName string, params *QueryParams) (Map, error)
-	GetRecords(tableName string, params *QueryParams) (Maps, int64, error)
-	UpdateRecord(tableName string, data *Body, params *QueryParams) (any, error)
-	DeleteRecord(tableName string, params *QueryParams) (any, error)
+	Columns(r *CRUD, fields ...string) []string
+	SetRecord(r *CRUD, data *Body, params *QueryParams) (any, error)
+	GetRecord(r *CRUD, params *QueryParams) (Map, error)
+	GetRecords(r *CRUD, params *QueryParams) (Maps, int64, error)
+	UpdateRecord(r *CRUD, data *Body, params *QueryParams) (any, error)
+	DeleteRecord(r *CRUD, params *QueryParams) (any, error)
+	Audit(action string, c *ewa.Context, r *CRUD)
 }
 
 type IResponse interface {
 	Send(c *ewa.Context, state string, status int, data any) error
 }
 
-type audit struct {
-	Author, TableName, Path, Body, Action string
-	Datetime                              time.Time
-	Status                                int
-}
-
-func (a *audit) String() string {
-	return fmt.Sprintf("%s %s [%s] %s %d %s", a.Datetime, a.TableName, a.Action, a.Author, a.Status, a.Path)
-}
-
-func (a *audit) Take(statusCode int, v any) {
-	body, _ := json.Marshal(v)
-	a.Body = string(body)
-	a.Status = statusCode
-}
-
-func (a *audit) Exec(action string, c *ewa.Context, r *CRUD) {
-	a.TableName = r.ModelName
-	a.Action = action
-	if c.Identity != nil {
-		a.Author = c.Identity.Username
-	}
-	a.Path = c.Path()
-	a.InsertToDB()
-}
-
-func (a *audit) InsertToDB() {
-	fmt.Println(a)
+type IQueryParam interface {
+	Format(r *CRUD, q *QueryParam) (*QueryParam, error)
+	Query(q QueryParams, columns []string) (string, []any)
+	Cast(value string, q *QueryParam) error
+	Pattern() string
 }
 
 type functions struct{}
 
-func (f functions) Columns(tableName string, fields ...string) []string {
-	return nil
+func (f functions) Columns(r *CRUD, fields ...string) []string {
+	return []string{"id", "name"}
 }
 
-func (f functions) SetRecord(tableName string, data *Body, params *QueryParams) (any, error) {
+func (f functions) SetRecord(r *CRUD, data *Body, params *QueryParams) (any, error) {
 	return 0, nil
 }
 
-func (f functions) GetRecord(tableName string, params *QueryParams) (Map, error) {
+func (f functions) GetRecord(r *CRUD, params *QueryParams) (Map, error) {
 	return nil, nil
 }
 
-func (f functions) GetRecords(tableName string, params *QueryParams) (Maps, int64, error) {
+func (f functions) GetRecords(r *CRUD, params *QueryParams) (Maps, int64, error) {
 	return nil, 0, nil
 }
 
-func (f functions) UpdateRecord(tableName string, data *Body, params *QueryParams) (any, error) {
+func (f functions) UpdateRecord(r *CRUD, data *Body, params *QueryParams) (any, error) {
 	return nil, nil
 }
 
-func (f functions) DeleteRecord(tableName string, params *QueryParams) (any, error) {
+func (f functions) DeleteRecord(r *CRUD, params *QueryParams) (any, error) {
 	return nil, nil
+}
+
+func (f functions) Audit(action string, c *ewa.Context, r *CRUD) {
+	fmt.Println(action)
+	if c.Identity != nil {
+		fmt.Println(c.Identity.Username)
+	}
+	fmt.Println(r.ModelName)
+}
+
+type PostgresFormat struct{}
+
+func (p *PostgresFormat) Pattern() string {
+	return `\[(->|->>|>|<|>-|<-|!|<>|array|&&|!array|!&&|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`
+}
+
+func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
+
+	switch q.Znak {
+	case "!":
+		q.Znak = "!="
+	case ">-":
+		q.Znak = ">="
+	case "<-":
+		q.Znak = "<="
+	case "%":
+		q.Znak = "like"
+	case "!%":
+		q.Znak = "not like"
+	case "~", "!~", "~*", "!~*":
+	case "+":
+		q.Znak = "similar to"
+	case "!+":
+		//q.Type += "::text"
+		q.Znak = "not similar to"
+	case "->", "->>":
+		switch v := q.Value.(type) {
+		case string:
+			a := strings.Split(v, "=")
+			if len(a) == 2 {
+				qf := QueryFormat(r, a[0], a[1])
+				value := fmt.Sprintf("'%s' %s", qf.Key, qf.Znak)
+				switch t := qf.Value.(type) {
+				case string:
+					value = strings.ReplaceAll(value, "?", "'"+t+"'")
+				case []string:
+					for i, tt := range t {
+						value = strings.Replace(value, "?", "'"+tt+"'", i+1)
+					}
+				}
+				q.Value = value
+			}
+		}
+	case "array", "&&":
+		if q.IsArray() {
+			q.Znak = "&& ARRAY[?]"
+			return q, nil
+		}
+	case "!array", "!&&":
+		if q.IsArray() {
+			q.Znak = "&& ARRAY[?]"
+			q.Key = fmt.Sprintf(`not "%s"`, q.Key)
+			q.IsQuotes = false
+			return q, nil
+		}
+	}
+
+	if q.Value == nil {
+		switch q.Znak {
+		case "=":
+			q.Znak = "is ?"
+		case "!=":
+			q.Znak = "is not ?"
+		}
+		return q, nil
+	}
+	if q.IsArray() {
+		switch q.Znak {
+		case "=":
+			q.Znak = "in(?)"
+		case "!=", "<>":
+			q.Znak = "not in(?)"
+		}
+		return q, nil
+	}
+	if q.IsRange() {
+		q.Znak = "between ? and ?"
+		return q, nil
+	}
+
+	q.Znak += " ?"
+
+	return q, nil
+}
+
+func (*PostgresFormat) Query(q QueryParams, columns []string) (query string, values []any) {
+	var (
+		params []*QueryParam
+		fields []string
+	)
+	// Если нет параметров, то выходим
+	if q.Len() == 0 && q.ID == nil {
+		return "", nil
+	}
+	// Отдельно передаём поле ID
+	if q.ID != nil {
+		params = append(params, q.ID)
+	}
+	// Заполнение параметры адресной строки
+	for key, value := range q.m {
+		if key == AllFieldsParamName || key == ExtraParamName {
+			continue
+		}
+		for _, v := range value {
+			params = append(params, v)
+		}
+	}
+
+	// Формирование полей для поиска везде OR
+	if vals, ok := q.m[AllFieldsParamName]; ok && len(vals) > 0 {
+		value := vals[0]
+		// Параметр адресной строки *=
+		if q.Filter != nil && len(q.Filter.Fields) > 0 {
+			for _, field := range q.Filter.Fields {
+				if _, ok = q.m[field]; !ok {
+					value.Key = field
+					if value.IsQuotes {
+						value.Key = `"` + value.Key + `"`
+					}
+					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
+					values = append(values, value.Value)
+				}
+			}
+		} else {
+			for _, column := range columns {
+				if _, ok = q.m[column]; !ok {
+					value.Key = column
+					if value.IsQuotes {
+						value.Key = `"` + value.Key + `"`
+					}
+					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
+					values = append(values, value.Value)
+				}
+			}
+		}
+	}
+	if len(fields) > 0 {
+		for i, field := range fields {
+			var spliter string
+			if i < len(fields)-1 {
+				spliter = " or "
+			}
+			query += field + spliter
+		}
+		query = "(" + query + ")"
+	}
+	// Заполняем строку запроса и значения для неё
+	if len(params) > 0 {
+		var v string
+		for i, param := range params {
+			values = append(values, param.Value)
+			var spliter string
+			if i > 0 {
+				spliter = " and "
+			}
+			if param.IsOR {
+				spliter = " or "
+			}
+			if param.IsQuotes {
+				param.Key = `"` + param.Key + `"`
+			}
+			v += spliter + strings.Trim(fmt.Sprintf("%s %s", param.Key, param.Znak), " ")
+		}
+		if len(query) > 0 {
+			query += " and " + v
+		} else {
+			query = v
+		}
+	}
+
+	return
+}
+
+// Cast Приведение переменной к типу данных
+func (p *PostgresFormat) Cast(value string, q *QueryParam) (err error) {
+
+	if q.DataType == "" {
+		switch strings.ToLower(value) {
+		case "null":
+			q.Value = nil
+		case "true", "false":
+			q.Value, err = strconv.ParseBool(value)
+		default:
+			if rng, ok := p.IsRange(q.Znak, value); ok {
+				q.Value = rng
+				q.Type = RangeType
+				break
+			}
+			if array, ok := p.IsArray(value); ok {
+				q.Value = pq.StringArray(array)
+				q.Type = ArrayType
+				break
+			}
+			q.Value = value
+		}
+		return
+	}
+	var (
+		rng, array []string
+		ok         bool
+	)
+	if rng, ok = p.IsRange(q.Znak, value); ok {
+		q.Type = RangeType
+	}
+	if array, ok = p.IsArray(value); ok && !q.IsRange() {
+		q.Type = ArrayType
+	}
+	switch q.DataType {
+	case "string":
+		switch {
+		case q.IsArray():
+			q.Value = pq.StringArray(array)
+		case q.IsRange():
+			q.Value = rng
+		default:
+			q.Value = value
+		}
+	case "int":
+		switch {
+		case q.IsArray():
+			q.Value = p.SetInt32Array(array)
+		case q.IsRange():
+			q.Value = p.SetInt32Array(rng)
+		default:
+			q.Value, err = strconv.Atoi(value)
+		}
+	case "int64":
+		switch {
+		case q.IsArray():
+			q.Value = p.SetInt64Array(array)
+		case q.IsRange():
+			q.Value = p.SetInt64Array(rng)
+		default:
+			q.Value, err = strconv.ParseInt(value, 10, 64)
+		}
+	case "float":
+		switch {
+		case q.IsArray():
+			q.Value = p.SetFloat32Array(array)
+		case q.IsRange():
+			q.Value = p.SetFloat32Array(rng)
+		default:
+			q.Value, err = strconv.ParseFloat(value, 32)
+		}
+	case "float64":
+		switch {
+		case q.IsArray():
+			q.Value = p.SetFloat64Array(array)
+		case q.IsRange():
+			q.Value = p.SetFloat64Array(rng)
+		default:
+			q.Value, err = strconv.ParseFloat(value, 64)
+		}
+	case "uint":
+		q.Value, err = strconv.ParseUint(value, 10, 32)
+	case "uint64":
+		q.Value, err = strconv.ParseUint(value, 10, 64)
+	case "date":
+		if q.IsRange() {
+			q.Value = p.SetTimeArray(rng, time.DateOnly)
+			break
+		}
+		q.Value, err = time.Parse(time.DateOnly, value)
+	case "time":
+		if q.IsRange() {
+			q.Value = p.SetTimeArray(rng, time.TimeOnly)
+			break
+		}
+		q.Value, err = time.Parse(time.TimeOnly, value)
+	case "datetime":
+		if q.IsRange() {
+			q.Value = p.SetTimeArray(rng, time.DateTime)
+			break
+		}
+		q.Value, err = time.Parse(time.DateTime, value)
+	default:
+
+	}
+	if err != nil {
+		return fmt.Errorf("invalid datatype %s", q.DataType)
+	}
+	return nil
+}
+
+// IsArray Проверка на массив
+func (*PostgresFormat) IsArray(value string) ([]string, bool) {
+	rgx := regexp.MustCompile(`^\[(.+)]$`)
+	if rgx.MatchString(value) {
+		matches := rgx.FindStringSubmatch(value)
+		if len(matches) == 2 {
+			return strings.Split(matches[1], ","), true
+		}
+	}
+	return nil, false
+}
+
+func (*PostgresFormat) IsRange(znak, value string) ([]string, bool) {
+	if znak == ":" {
+		rgx := regexp.MustCompile(`^\[(.+)\|(.+)]$`)
+		if rgx.MatchString(value) {
+			matches := rgx.FindStringSubmatch(value)
+			if len(matches) == 3 {
+				return []string{matches[1], matches[2]}, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func (*PostgresFormat) SetInt32Array(array []string) (a pq.Int32Array) {
+	for _, v := range array {
+		if value, err := strconv.Atoi(v); err == nil {
+			a = append(a, int32(value))
+		}
+	}
+	return a
+}
+
+func (*PostgresFormat) SetInt64Array(array []string) (a pq.Int64Array) {
+	for _, v := range array {
+		if value, err := strconv.ParseInt(v, 10, 64); err == nil {
+			a = append(a, value)
+		}
+	}
+	return a
+}
+
+func (*PostgresFormat) SetFloat32Array(array []string) (a pq.Float32Array) {
+	for _, v := range array {
+		if value, err := strconv.ParseFloat(v, 32); err == nil {
+			a = append(a, float32(value))
+		}
+	}
+	return a
+}
+
+func (*PostgresFormat) SetFloat64Array(array []string) (a pq.Float64Array) {
+	for _, v := range array {
+		if value, err := strconv.ParseFloat(v, 64); err == nil {
+			a = append(a, value)
+		}
+	}
+	return a
+}
+
+func (*PostgresFormat) SetTimeArray(array []string, layout string) (a []time.Time) {
+	for _, v := range array {
+		if value, err := time.Parse(layout, v); err == nil {
+			a = append(a, value)
+		}
+	}
+	return a
 }

@@ -183,87 +183,104 @@ func TestCast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.Cast("1::int", &q)
+	q = QueryParam{DataType: "int"}
+	err = r.Cast("1", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, 1)
-	err = r.Cast("-123456789987654::int64", &q)
+	q = QueryParam{DataType: "int64"}
+	err = r.Cast("-123456789987654", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, int64(-123456789987654))
-	err = r.Cast("1234.5678::float", &q)
+	q = QueryParam{DataType: "float"}
+	err = r.Cast("1234.5678", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, 1234.5677490234375)
-	err = r.Cast("-1234.5678::float64", &q)
+	q = QueryParam{DataType: "float64"}
+	err = r.Cast("-1234.5678", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, -1234.5678)
-	err = r.Cast("123456789::uint", &q)
+	q = QueryParam{DataType: "uint"}
+	err = r.Cast("123456789", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, uint64(123456789))
-	err = r.Cast("123456789123321654::uint64", &q)
+	q = QueryParam{DataType: "uint64"}
+	err = r.Cast("123456789123321654", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, uint64(123456789123321654))
-	err = r.Cast("2025-03-28::date", &q)
+	q = QueryParam{DataType: "date"}
+	err = r.Cast("2025-03-28", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value.(time.Time).Format(time.DateOnly), "2025-03-28")
-	err = r.Cast("23:52:12::time", &q)
+	q = QueryParam{DataType: "time"}
+	err = r.Cast("23:52:12", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value.(time.Time).Format(time.TimeOnly), "23:52:12")
-	err = r.Cast("2025-03-28 23:52:12::datetime", &q)
+	q = QueryParam{DataType: "datetime"}
+	err = r.Cast("2025-03-28 23:52:12", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value.(time.Time).Format(time.DateTime), "2025-03-28 23:52:12")
+	q = QueryParam{}
 	err = r.Cast("true", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, true)
-	err = r.Cast("false::string", &q)
+	q = QueryParam{DataType: "string"}
+	err = r.Cast("false", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, "false")
+	q = QueryParam{}
 	err = r.Cast("null", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, nil)
-	err = r.Cast("null::string", &q)
+	q = QueryParam{DataType: "string"}
+	err = r.Cast("null", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertEq(t, q.Value, "null")
+	q = QueryParam{}
 	err = r.Cast("[t1,t2,t3]", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertArrayStringEq(t, q.Value, []string{"t1", "t2", "t3"})
-	err = r.Cast("[t1,t2,t3]::string", &q)
+	q = QueryParam{DataType: "string"}
+	err = r.Cast("[t1,t2,t3]", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertArrayStringEq(t, q.Value, []string{"t1", "t2", "t3"})
-	err = r.Cast("[1,2,3]::int", &q)
+	q = QueryParam{DataType: "int"}
+	err = r.Cast("[1,2,3]", &q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertArrayStringEq(t, q.Value, []int{1, 2, 3})
-	err = r.Cast("[1|10]::int", &q)
+	q = QueryParam{DataType: "int", Znak: ":"}
+	err = r.Cast("[1|10]", &q)
 	if err != nil {
 		t.Fatal(err)
 	}

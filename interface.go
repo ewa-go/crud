@@ -26,7 +26,7 @@ type IResponse interface {
 
 type IQueryParam interface {
 	Format(r *CRUD, q *QueryParam) (*QueryParam, error)
-	Query(q QueryParams, columns []string) (string, []any)
+	Query(q *QueryParams, columns []string) (string, []any)
 	Cast(value string, q *QueryParam) error
 	Pattern() string
 }
@@ -150,7 +150,7 @@ func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 	return q, nil
 }
 
-func (*PostgresFormat) Query(q QueryParams, columns []string) (query string, values []any) {
+func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, values []any) {
 	var (
 		params []*QueryParam
 		fields []string

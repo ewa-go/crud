@@ -22,7 +22,7 @@ type CRUD struct {
 
 var ErrQueryParam = "Укажите поля для уточнения изменения записи! Пример: ../path?name=Name"
 
-type Handler func(*ewa.Context, CRUD, *security.Identity, *QueryParams, *Body) (int, error)
+type Handler func(*ewa.Context, *CRUD, *security.Identity, *QueryParams, *Body) (int, error)
 
 func New(h IHandlers) *CRUD {
 	return &CRUD{
@@ -169,7 +169,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик до обращения в бд
 	if before != nil {
-		if status, err := before(c, *r, c.Identity, queryParams, nil); err != nil {
+		if status, err := before(c, r, c.Identity, queryParams, nil); err != nil {
 			return r.Send(c, Read, status, err)
 		}
 	}
@@ -184,7 +184,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 		// Обработчик после обращению в бд
 		if after != nil {
-			if status, err := after(c, *r, c.Identity, queryParams, nil); err != nil {
+			if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
 				return r.Send(c, Read, status, err)
 			}
 		}
@@ -203,7 +203,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, *r, c.Identity, queryParams, nil); err != nil {
+		if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
 			return r.Send(c, Read, status, err) //c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
@@ -235,7 +235,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик до обращения в бд
 	if before != nil {
-		if status, err := before(c, *r, c.Identity, queryParams, body); err != nil {
+		if status, err := before(c, r, c.Identity, queryParams, body); err != nil {
 			return r.Send(c, Created, status, err)
 		}
 	}
@@ -247,7 +247,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, *r, c.Identity, queryParams, body); err != nil {
+		if status, err := after(c, r, c.Identity, queryParams, body); err != nil {
 			return r.Send(c, Created, status, err)
 		}
 	}
@@ -284,7 +284,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик до обращения в бд
 	if before != nil {
-		if status, err := before(c, *r, c.Identity, queryParams, body); err != nil {
+		if status, err := before(c, r, c.Identity, queryParams, body); err != nil {
 			return r.Send(c, Updated, status, err)
 		}
 	}
@@ -298,7 +298,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, *r, c.Identity, queryParams, body); err != nil {
+		if status, err := after(c, r, c.Identity, queryParams, body); err != nil {
 			return r.Send(c, Updated, status, err)
 		}
 	}
@@ -328,7 +328,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) 
 
 	// Обработчик до обращения в бд
 	if before != nil {
-		if status, err := before(c, *r, c.Identity, queryParams, nil); err != nil {
+		if status, err := before(c, r, c.Identity, queryParams, nil); err != nil {
 			return r.Send(c, Deleted, status, err)
 		}
 	}
@@ -342,7 +342,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) 
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, *r, c.Identity, queryParams, nil); err != nil {
+		if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
 			return r.Send(c, Deleted, status, err)
 		}
 	}

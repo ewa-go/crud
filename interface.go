@@ -182,7 +182,7 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 				if _, ok = q.m[field]; !ok {
 					value.Key = field
 					if value.IsQuotes {
-						value.Key = `"` + value.Key + `"`
+						value.Key = `"` + value.Key + `"::text`
 					}
 					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
 					values = append(values, value.Value)
@@ -193,7 +193,7 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 				if _, ok = q.m[column]; !ok {
 					value.Key = column
 					if value.IsQuotes {
-						value.Key = `"` + value.Key + `"`
+						value.Key = `"` + value.Key + `"::text`
 					}
 					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
 					values = append(values, value.Value)

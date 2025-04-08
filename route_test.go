@@ -42,7 +42,7 @@ func (c *Handlers) GetRecord(r *CRUD, params *QueryParams) (Map, error) {
 
 func (c *Handlers) GetRecords(r *CRUD, params *QueryParams) (Maps, int64, error) {
 	fmt.Println("GetRecords")
-	query, values := r.Query(*params, c.Columns(r))
+	query, values := r.Query(params, c.Columns(r))
 	fmt.Println("query:", query)
 	fmt.Printf("values: %v\n", values)
 	data := Maps{}

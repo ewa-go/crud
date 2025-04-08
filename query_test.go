@@ -44,28 +44,28 @@ func TestName(t *testing.T) {
 
 func TestParams(t *testing.T) {
 	r := getCRUD()
-	q := QueryParams{}
+	q := &QueryParams{}
 	q.ID = QueryFormat(r, "id", "1::int")
 	q.Set("name", QueryFormat(r, "name", "Name"))
 	query, values := r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" = ?`)
 	assertArrayEq(t, []any{1, "Name"}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "2::int")
 	q.Set("*", QueryFormat(r, "*", "Значение"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `("id" = ? or "name" = ?) and "id" = ?`)
 	assertArrayEq(t, []any{"Значение", "Значение", 2}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "3::int")
 	q.Set("name", QueryFormat(r, "name", "[1,2,3]"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" in(?)`)
 	assertArrayEq(t, []any{3, []string{"1", "2", "3"}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "4::int")
 	q.Set("name", QueryFormat(r, "name[:]", "[2024-08-01 00:00:00|2024-08-31 23:59:59]::datetime"))
 	query, values = r.Query(q, r.Columns(r))
@@ -80,46 +80,54 @@ func TestParams(t *testing.T) {
 	}
 	assertArrayEq(t, []any{4, []time.Time{from, to}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "5::int")
 	q.Set("name", QueryFormat(r, "name[array]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
 	assertArrayEq(t, []any{5, []string{"success", "warning"}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "6::int")
 	q.Set("name", QueryFormat(r, "name[&&]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
 	assertArrayEq(t, []any{6, []string{"success", "warning"}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "7::int")
 	q.Set("name", QueryFormat(r, "name[!array]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
 	assertArrayEq(t, []any{7, []string{"success", "warning"}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "8")
 	q.Set("name", QueryFormat(r, "name[!&&]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
 	assertArrayEq(t, []any{"8", []string{"success", "warning"}}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "9::int")
 	q.Set("name", QueryFormat(r, "name[!]", "[1,2,4]::int"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" not in(?)`)
 	assertArrayEq(t, []any{9, []int{1, 2, 4}}, values)
+
+	q = &QueryParams{}
+	q.ID = QueryFormat(r, "id", "10::int")
+	q.Set("name", QueryFormat(r, "name", "Name1"))
+	q.Set("name", QueryFormat(r, "name[~]", "Name2"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "name" = ? and "name" ~ ?`)
+	assertArrayEq(t, []any{10, "Name1", "Name2"}, values)
 }
 
 func TestOR(t *testing.T) {
 	var err error
 	r := getCRUD()
-	q := QueryParams{}
+	q := &QueryParams{}
 	q.ID, err = r.QueryFormat("id", "1::int")
 	if err != nil {
 		t.Fatal(err)
@@ -133,21 +141,21 @@ func TestOR(t *testing.T) {
 
 func TestJSON(t *testing.T) {
 	r := getCRUD()
-	q := QueryParams{}
+	q := &QueryParams{}
 	q.ID = QueryFormat(r, "id", "1::int")
 	q.Set("result", QueryFormat(r, "result[->>]", "type=2"))
 	query, values := r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "result" ->> ?`)
 	assertArrayEq(t, []any{1, "'type' = '2'"}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "2::int")
 	q.Set("result", QueryFormat(r, "result[->>]", "type[%]=2%"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "result" ->> ?`)
 	assertArrayEq(t, []any{2, "'type' like '2%'"}, values)
 
-	q = QueryParams{}
+	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "3::int")
 	q.Set("result", QueryFormat(r, "result[->>]", "type[:]=[1|2]"))
 	query, values = r.Query(q, r.Columns(r))

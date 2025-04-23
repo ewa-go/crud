@@ -3,7 +3,6 @@ package crud
 import (
 	"fmt"
 	"github.com/ewa-go/ewa"
-	"github.com/lib/pq"
 	"regexp"
 	"strconv"
 	"strings"
@@ -254,7 +253,7 @@ func (p *PostgresFormat) Cast(value string, q *QueryParam) (err error) {
 				break
 			}
 			if array, ok := p.IsArray(value); ok {
-				q.Value = pq.StringArray(array)
+				q.Value = array //pq.StringArray(array)
 				q.Type = ArrayType
 				break
 			}
@@ -276,7 +275,7 @@ func (p *PostgresFormat) Cast(value string, q *QueryParam) (err error) {
 	case "string":
 		switch {
 		case q.IsArray():
-			q.Value = pq.StringArray(array)
+			q.Value = array //pq.StringArray(array)
 		case q.IsRange():
 			q.Value = rng
 		default:
@@ -374,7 +373,7 @@ func (*PostgresFormat) IsRange(znak, value string) ([]string, bool) {
 	return nil, false
 }
 
-func (*PostgresFormat) SetInt32Array(array []string) (a pq.Int32Array) {
+func (*PostgresFormat) SetInt32Array(array []string) (a []int32 /*pq.Int32Array*/) {
 	for _, v := range array {
 		if value, err := strconv.Atoi(v); err == nil {
 			a = append(a, int32(value))
@@ -383,7 +382,7 @@ func (*PostgresFormat) SetInt32Array(array []string) (a pq.Int32Array) {
 	return a
 }
 
-func (*PostgresFormat) SetInt64Array(array []string) (a pq.Int64Array) {
+func (*PostgresFormat) SetInt64Array(array []string) (a []int64 /*pq.Int64Array*/) {
 	for _, v := range array {
 		if value, err := strconv.ParseInt(v, 10, 64); err == nil {
 			a = append(a, value)
@@ -392,7 +391,7 @@ func (*PostgresFormat) SetInt64Array(array []string) (a pq.Int64Array) {
 	return a
 }
 
-func (*PostgresFormat) SetFloat32Array(array []string) (a pq.Float32Array) {
+func (*PostgresFormat) SetFloat32Array(array []string) (a []float32 /*pq.Float32Array*/) {
 	for _, v := range array {
 		if value, err := strconv.ParseFloat(v, 32); err == nil {
 			a = append(a, float32(value))
@@ -401,7 +400,7 @@ func (*PostgresFormat) SetFloat32Array(array []string) (a pq.Float32Array) {
 	return a
 }
 
-func (*PostgresFormat) SetFloat64Array(array []string) (a pq.Float64Array) {
+func (*PostgresFormat) SetFloat64Array(array []string) (a []float64 /*pq.Float64Array*/) {
 	for _, v := range array {
 		if value, err := strconv.ParseFloat(v, 64); err == nil {
 			a = append(a, value)

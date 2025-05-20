@@ -1,6 +1,8 @@
 package crud
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"github.com/ewa-go/ewa"
 	"regexp"
@@ -11,12 +13,13 @@ import (
 
 type IHandlers interface {
 	Columns(r *CRUD, fields ...string) []string
-	SetRecord(r *CRUD, data *Body, params *QueryParams) (any, error)
-	GetRecord(r *CRUD, params *QueryParams) (Map, error)
-	GetRecords(r *CRUD, params *QueryParams) (Maps, int64, error)
-	UpdateRecord(r *CRUD, data *Body, params *QueryParams) (any, error)
-	DeleteRecord(r *CRUD, params *QueryParams) (any, error)
+	SetRecord(r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
+	GetRecord(r *CRUD, params *QueryParams) (status int, data Map, err error)
+	GetRecords(r *CRUD, params *QueryParams) (status int, data Maps, total int64, err error)
+	UpdateRecord(r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
+	DeleteRecord(r *CRUD, params *QueryParams) (status int, result any, err error)
 	Audit(action string, c *ewa.Context, r *CRUD)
+	Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error)
 }
 
 type IResponse interface {
@@ -36,24 +39,24 @@ func (f functions) Columns(r *CRUD, fields ...string) []string {
 	return []string{"id", "name"}
 }
 
-func (f functions) SetRecord(r *CRUD, data *Body, params *QueryParams) (any, error) {
-	return 0, nil
+func (f functions) SetRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+	return 200, 0, nil
 }
 
-func (f functions) GetRecord(r *CRUD, params *QueryParams) (Map, error) {
-	return nil, nil
+func (f functions) GetRecord(r *CRUD, params *QueryParams) (int, Map, error) {
+	return 200, nil, nil
 }
 
-func (f functions) GetRecords(r *CRUD, params *QueryParams) (Maps, int64, error) {
-	return nil, 0, nil
+func (f functions) GetRecords(r *CRUD, params *QueryParams) (int, Maps, int64, error) {
+	return 200, nil, 0, nil
 }
 
-func (f functions) UpdateRecord(r *CRUD, data *Body, params *QueryParams) (any, error) {
-	return nil, nil
+func (f functions) UpdateRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+	return 200, nil, nil
 }
 
-func (f functions) DeleteRecord(r *CRUD, params *QueryParams) (any, error) {
-	return nil, nil
+func (f functions) DeleteRecord(r *CRUD, params *QueryParams) (int, any, error) {
+	return 200, nil, nil
 }
 
 func (f functions) Audit(action string, c *ewa.Context, r *CRUD) {
@@ -62,6 +65,22 @@ func (f functions) Audit(action string, c *ewa.Context, r *CRUD) {
 		fmt.Println(c.Identity.Username)
 	}
 	fmt.Println(r.ModelName)
+}
+
+func (f functions) Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error) {
+	switch contentType {
+	case "application/json", "application/json;utf-8":
+		if isArray {
+			return json.Unmarshal(data, &body.Array)
+		}
+		return json.Unmarshal(data, &body.Data)
+	case "application/xml":
+		if isArray {
+			return xml.Unmarshal(data, &body.Array)
+		}
+		return xml.Unmarshal(data, &body.Data)
+	}
+	return nil
 }
 
 type PostgresFormat struct{}

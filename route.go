@@ -22,7 +22,8 @@ type CRUD struct {
 
 var ErrQueryParam = "Укажите поля для уточнения изменения записи! Пример: ../path?name=Name"
 
-type Handler func(*ewa.Context, *CRUD, *security.Identity, *QueryParams, *Body) (int, error)
+type BeforeHandler func(c *ewa.Context, r *CRUD, i *security.Identity, q *QueryParams, body *Body) (int, error)
+type AfterHandler func(c *ewa.Context, r *CRUD, i *security.Identity, q *QueryParams, result any) (int, error)
 
 func New(h IHandlers) *CRUD {
 	return &CRUD{
@@ -144,7 +145,7 @@ func (r *CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r *CRUD) err
 }
 
 // ReadHandler Обработчик получения записей
-func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
+func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
@@ -164,9 +165,8 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	queryParams, err := r.NewQueryParams(c, true)
 	if err != nil {
-		return r.Send(c, Read, consts.StatusBadRequest, err) //c.SendString(r.String(consts.StatusBadRequest, err.Error()))
+		return r.Send(c, Read, consts.StatusBadRequest, err)
 	}
-
 	// Обработчик до обращения в бд
 	if before != nil {
 		if status, err := before(c, r, c.Identity, queryParams, nil); err != nil {
@@ -176,26 +176,26 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	// Если есть id возвращаем только одну запись
 	if queryParams != nil && queryParams.ID != nil {
-		record, err := r.GetRecord(r, queryParams)
+		status, record, err := r.GetRecord(r, queryParams)
 		if err != nil {
-			return r.Send(c, Read, consts.StatusUnprocessableEntity, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+			return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 		}
 		record.Excludes(r.Excludes...)
 
 		// Обработчик после обращению в бд
 		if after != nil {
-			if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
+			if status, err = after(c, r, c.Identity, queryParams, record); err != nil {
 				return r.Send(c, Read, status, err)
 			}
 		}
 
-		return r.Send(c, Read, 200, record)
+		return r.Send(c, Read, status, record)
 	}
 
 	// Вернуть записи
-	records, total, err := r.GetRecords(r, queryParams)
+	status, records, total, err := r.GetRecords(r, queryParams)
 	if err != nil {
-		return r.Send(c, Read, consts.StatusUnprocessableEntity, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+		return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 	// Заголовок Total
 	c.Set(HeaderTotal, fmt.Sprintf("%d", total))
@@ -203,16 +203,16 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
+		if status, err = after(c, r, c.Identity, queryParams, records); err != nil {
 			return r.Send(c, Read, status, err) //c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
 		}
 	}
 
-	return r.Send(c, Read, 200, records)
+	return r.Send(c, Read, status, records)
 }
 
 // CreateHandler Обработчик для создания записей
-func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
+func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
@@ -221,10 +221,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 	defer r.Audit(Created, c, r)
 
 	body := NewBody(r.FieldIdName)
-	if c.Identity != nil {
-		body.SetField("author", c.Identity.Username)
-	}
-	if err := body.Unmarshal(c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
+	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
 		return r.Send(c, Created, consts.StatusBadRequest, err)
 	}
 
@@ -235,28 +232,29 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before, after Handler) error {
 
 	// Обработчик до обращения в бд
 	if before != nil {
-		if status, err := before(c, r, c.Identity, queryParams, body); err != nil {
+		var status int
+		if status, err = before(c, r, c.Identity, queryParams, body); err != nil {
 			return r.Send(c, Created, status, err)
 		}
 	}
 
-	result, err := r.SetRecord(r, body, queryParams)
+	status, result, err := r.SetRecord(r, body, queryParams)
 	if err != nil {
-		return r.Send(c, Created, consts.StatusUnprocessableEntity, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+		return r.Send(c, Created, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, r, c.Identity, queryParams, body); err != nil {
+		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
 			return r.Send(c, Created, status, err)
 		}
 	}
 
-	return r.Send(c, Created, 200, result)
+	return r.Send(c, Created, status, result)
 }
 
 // UpdateHandler Обновление записей
-func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
+func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
@@ -275,11 +273,8 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 	}
 
 	body := NewBody(r.FieldIdName)
-	if c.Identity != nil {
-		body.SetField("author", c.Identity.Username)
-	}
-	if err = body.Unmarshal(c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
-		return r.Send(c, Updated, consts.StatusBadRequest, err)
+	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
+		return r.Send(c, Created, consts.StatusBadRequest, err)
 	}
 
 	// Обработчик до обращения в бд
@@ -290,24 +285,24 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before, after Handler) error {
 	}
 
 	// Пишем данные в бд
-	result, err := r.UpdateRecord(r, body, queryParams)
+	status, result, err := r.UpdateRecord(r, body, queryParams)
 	if err != nil {
-		return r.Send(c, Updated, consts.StatusUnprocessableEntity, err)
+		return r.Send(c, Updated, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, r, c.Identity, queryParams, body); err != nil {
+		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
 			return r.Send(c, Updated, status, err)
 		}
 	}
 
-	return r.Send(c, Updated, 200, result)
+	return r.Send(c, Updated, status, result)
 }
 
 // DeleteHandler Обработчик удаления записей
-func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) {
+func (r *CRUD) DeleteHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) (err error) {
 
 	if r.TableTypes != nil {
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
@@ -334,18 +329,18 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before, after Handler) (err error) 
 	}
 
 	// Удаление записи
-	result, err := r.DeleteRecord(r, queryParams)
+	status, result, err := r.DeleteRecord(r, queryParams)
 	if err != nil {
-		return r.Send(c, Deleted, consts.StatusUnprocessableEntity, err)
+		return r.Send(c, Deleted, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
-		if status, err := after(c, r, c.Identity, queryParams, nil); err != nil {
+		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
 			return r.Send(c, Deleted, status, err)
 		}
 	}
 
-	return r.Send(c, Deleted, 200, result)
+	return r.Send(c, Deleted, status, result)
 }

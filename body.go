@@ -1,10 +1,5 @@
 package crud
 
-import (
-	"encoding/json"
-	"errors"
-)
-
 type Body struct {
 	Data           map[string]interface{}
 	Array          []map[string]interface{}
@@ -50,7 +45,7 @@ func (b *Body) SetExecuteHandler(h ExecuteHandler) *Body {
 	return b
 }
 
-func (b *Body) Unmarshal(data []byte, isArray bool) error {
+/*func (b *Body) Unmarshal(data []byte, isArray bool) error {
 	if len(data) == 0 {
 		return errors.New("пустые данные")
 	}
@@ -59,7 +54,7 @@ func (b *Body) Unmarshal(data []byte, isArray bool) error {
 		return json.Unmarshal(data, &b.Array)
 	}
 	return json.Unmarshal(data, &b.Data)
-}
+}*/
 
 func (b *Body) Execute(skipError bool) error {
 	if b.IsArray {

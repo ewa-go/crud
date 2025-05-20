@@ -13,11 +13,11 @@ import (
 
 type IHandlers interface {
 	Columns(r *CRUD, fields ...string) []string
-	SetRecord(r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
-	GetRecord(r *CRUD, params *QueryParams) (status int, data Map, err error)
-	GetRecords(r *CRUD, params *QueryParams) (status int, data Maps, total int64, err error)
-	UpdateRecord(r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
-	DeleteRecord(r *CRUD, params *QueryParams) (status int, result any, err error)
+	SetRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
+	GetRecord(c *ewa.Context, r *CRUD, params *QueryParams) (status int, data Map, err error)
+	GetRecords(c *ewa.Context, r *CRUD, params *QueryParams) (status int, data Maps, total int64, err error)
+	UpdateRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
+	DeleteRecord(c *ewa.Context, r *CRUD, params *QueryParams) (status int, result any, err error)
 	Audit(action string, c *ewa.Context, r *CRUD)
 	Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error)
 }
@@ -39,23 +39,23 @@ func (f functions) Columns(r *CRUD, fields ...string) []string {
 	return []string{"id", "name"}
 }
 
-func (f functions) SetRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+func (f functions) SetRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (int, any, error) {
 	return 200, 0, nil
 }
 
-func (f functions) GetRecord(r *CRUD, params *QueryParams) (int, Map, error) {
+func (f functions) GetRecord(c *ewa.Context, r *CRUD, params *QueryParams) (int, Map, error) {
 	return 200, nil, nil
 }
 
-func (f functions) GetRecords(r *CRUD, params *QueryParams) (int, Maps, int64, error) {
+func (f functions) GetRecords(c *ewa.Context, r *CRUD, params *QueryParams) (int, Maps, int64, error) {
 	return 200, nil, 0, nil
 }
 
-func (f functions) UpdateRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+func (f functions) UpdateRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (int, any, error) {
 	return 200, nil, nil
 }
 
-func (f functions) DeleteRecord(r *CRUD, params *QueryParams) (int, any, error) {
+func (f functions) DeleteRecord(c *ewa.Context, r *CRUD, params *QueryParams) (int, any, error) {
 	return 200, nil, nil
 }
 

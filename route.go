@@ -176,7 +176,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 
 	// Если есть id возвращаем только одну запись
 	if queryParams != nil && queryParams.ID != nil {
-		status, record, err := r.GetRecord(r, queryParams)
+		status, record, err := r.GetRecord(c, r, queryParams)
 		if err != nil {
 			return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 		}
@@ -193,7 +193,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 	}
 
 	// Вернуть записи
-	status, records, total, err := r.GetRecords(r, queryParams)
+	status, records, total, err := r.GetRecords(c, r, queryParams)
 	if err != nil {
 		return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
@@ -238,7 +238,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 		}
 	}
 
-	status, result, err := r.SetRecord(r, body, queryParams)
+	status, result, err := r.SetRecord(c, r, body, queryParams)
 	if err != nil {
 		return r.Send(c, Created, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
@@ -285,7 +285,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 	}
 
 	// Пишем данные в бд
-	status, result, err := r.UpdateRecord(r, body, queryParams)
+	status, result, err := r.UpdateRecord(c, r, body, queryParams)
 	if err != nil {
 		return r.Send(c, Updated, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
@@ -329,7 +329,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 	}
 
 	// Удаление записи
-	status, result, err := r.DeleteRecord(r, queryParams)
+	status, result, err := r.DeleteRecord(c, r, queryParams)
 	if err != nil {
 		return r.Send(c, Deleted, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))

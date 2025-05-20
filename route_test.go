@@ -12,13 +12,13 @@ import (
 
 type Handlers struct{}
 
-func (c *Handlers) Columns(r *CRUD, fields ...string) []string {
+func (h *Handlers) Columns(r *CRUD, fields ...string) []string {
 	fmt.Println("Columns")
 	fmt.Printf("tableName: %s\n", r.ModelName)
 	return []string{"id", "name"}
 }
 
-func (c *Handlers) SetRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+func (h *Handlers) SetRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (int, any, error) {
 	if data.IsArray {
 		fmt.Println(data.Array)
 		return 200, "result", nil
@@ -27,10 +27,13 @@ func (c *Handlers) SetRecord(r *CRUD, data *Body, params *QueryParams) (int, any
 	fmt.Printf("tableName: %s\n", r.ModelName)
 	fmt.Printf("data: %v\n", data)
 	fmt.Printf("params: %v\n", params)
+	if c.Identity != nil {
+		fmt.Println("author", c.Identity.Username)
+	}
 	return 200, "result", nil
 }
 
-func (c *Handlers) GetRecord(r *CRUD, params *QueryParams) (int, Map, error) {
+func (h *Handlers) GetRecord(c *ewa.Context, r *CRUD, params *QueryParams) (int, Map, error) {
 	fmt.Println("GetRecord")
 	if params.ID != nil {
 		fmt.Println("ID", params.ID.Value)
@@ -42,9 +45,9 @@ func (c *Handlers) GetRecord(r *CRUD, params *QueryParams) (int, Map, error) {
 	return 200, data, nil
 }
 
-func (c *Handlers) GetRecords(r *CRUD, params *QueryParams) (int, Maps, int64, error) {
+func (h *Handlers) GetRecords(c *ewa.Context, r *CRUD, params *QueryParams) (int, Maps, int64, error) {
 	fmt.Println("GetRecords")
-	query, values := r.Query(params, c.Columns(r))
+	query, values := r.Query(params, h.Columns(r))
 	fmt.Println("query:", query)
 	fmt.Printf("values: %v\n", values)
 	data := Maps{}
@@ -53,26 +56,29 @@ func (c *Handlers) GetRecords(r *CRUD, params *QueryParams) (int, Maps, int64, e
 	return 200, data, 2, nil
 }
 
-func (c *Handlers) UpdateRecord(r *CRUD, data *Body, params *QueryParams) (int, any, error) {
+func (h *Handlers) UpdateRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (int, any, error) {
 	fmt.Println("UpdateRecord")
 	fmt.Printf("tableName: %s\n", r.ModelName)
 	fmt.Printf("data: %v\n", data)
 	fmt.Printf("params: %v\n", params)
+	if c.Identity != nil {
+		fmt.Println("author", c.Identity.Username)
+	}
 	return 200, "result", nil
 }
 
-func (c *Handlers) DeleteRecord(r *CRUD, params *QueryParams) (int, any, error) {
+func (h *Handlers) DeleteRecord(c *ewa.Context, r *CRUD, params *QueryParams) (int, any, error) {
 	fmt.Println("DeleteRecord")
 	fmt.Printf("tableName: %s\n", r.ModelName)
 	fmt.Printf("params: %v\n", params)
 	return 200, "result", nil
 }
 
-func (c *Handlers) Audit(action string, ctx *ewa.Context, r *CRUD) {
+func (h *Handlers) Audit(action string, c *ewa.Context, r *CRUD) {
 	fmt.Println(action)
 }
 
-func (c *Handlers) Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error) {
+func (h *Handlers) Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error) {
 	switch contentType {
 	case "application/json", "application/json;utf-8":
 		if isArray {
@@ -148,7 +154,7 @@ func TestCustomHandler(t *testing.T) {
 					if err != nil {
 						return c.SendString(400, err.Error())
 					}
-					status, data, err := r.GetRecord(r, queryParams)
+					status, data, err := r.GetRecord(c, r, queryParams)
 					if err != nil {
 						return c.SendString(status, err.Error())
 					}

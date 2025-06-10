@@ -392,10 +392,10 @@ func (*PostgresFormat) IsRange(znak, value string) ([]string, bool) {
 	return nil, false
 }
 
-func (*PostgresFormat) SetInt32Array(array []string) (a []int32 /*pq.Int32Array*/) {
+func (*PostgresFormat) SetInt32Array(array []string) (a []int /*pq.Int32Array*/) {
 	for _, v := range array {
 		if value, err := strconv.Atoi(v); err == nil {
-			a = append(a, int32(value))
+			a = append(a, value)
 		}
 	}
 	return a

@@ -55,7 +55,7 @@ func TestParams(t *testing.T) {
 	q.ID = QueryFormat(r, "id", "2::int")
 	q.Set("*", QueryFormat(r, "*", "Значение"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `("id" = ? or "name" = ?) and "id" = ?`)
+	assertEq(t, query, `("id"::text = ? or "name"::text = ?) and "id" = ?`)
 	assertArrayEq(t, []any{"Значение", "Значение", 2}, values)
 
 	q = &QueryParams{}
@@ -122,6 +122,13 @@ func TestParams(t *testing.T) {
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "name" = ? and "name" ~ ?`)
 	assertArrayEq(t, []any{10, "Name1", "Name2"}, values)
+
+	q = &QueryParams{}
+	q.ID = QueryFormat(r, "id", "6::int")
+	q.Set("group_ids", QueryFormat(r, "group_ids[&&]", "[1,2]::int"))
+	query, values = r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? and "group_ids" && ARRAY[?]`)
+	assertArrayEq(t, []any{6, []int{1, 2}}, values)
 }
 
 func TestOR(t *testing.T) {

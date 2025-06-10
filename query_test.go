@@ -127,7 +127,7 @@ func TestParams(t *testing.T) {
 	q.ID = QueryFormat(r, "id", "6::int")
 	q.Set("group_ids", QueryFormat(r, "group_ids[&&]", "[1,2]::int"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "group_ids" && ARRAY[?]`)
+	assertEq(t, query, `"id" = ? and "group_ids" && ARRAY[?]::int[]`)
 	assertArrayEq(t, []any{6, []int{1, 2}}, values)
 }
 

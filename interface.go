@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/ewa-go/ewa"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ewa-go/ewa"
 )
 
 type IHandlers interface {
@@ -19,7 +20,7 @@ type IHandlers interface {
 	UpdateRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
 	DeleteRecord(c *ewa.Context, r *CRUD, params *QueryParams) (status int, result any, err error)
 	Audit(action string, c *ewa.Context, r *CRUD)
-	Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error)
+	Unmarshal(body *Body, contentType string, data []byte) (err error)
 }
 
 type IResponse interface {
@@ -67,15 +68,15 @@ func (f functions) Audit(action string, c *ewa.Context, r *CRUD) {
 	fmt.Println(r.ModelName)
 }
 
-func (f functions) Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error) {
+func (f functions) Unmarshal(body *Body, contentType string, data []byte) (err error) {
 	switch contentType {
 	case "application/json", "application/json;utf-8":
-		if isArray {
+		if body.IsArray {
 			return json.Unmarshal(data, &body.Array)
 		}
 		return json.Unmarshal(data, &body.Data)
 	case "application/xml":
-		if isArray {
+		if body.IsArray {
 			return xml.Unmarshal(data, &body.Array)
 		}
 		return xml.Unmarshal(data, &body.Data)

@@ -2,10 +2,11 @@ package crud
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ewa-go/ewa"
 	"github.com/ewa-go/ewa/consts"
 	"github.com/ewa-go/ewa/security"
-	"strings"
 )
 
 type CRUD struct {
@@ -204,7 +205,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 	// Обработчик после обращению в бд
 	if after != nil {
 		if status, err = after(c, r, c.Identity, queryParams, records); err != nil {
-			return r.Send(c, Read, status, err) //c.SendString(r.String(r.StatusDict.Get(status, err.Error())))
+			return r.Send(c, Read, status, err)
 		}
 	}
 
@@ -220,8 +221,8 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 	// Аудит
 	defer r.Audit(Created, c, r)
 
-	body := NewBody(r.FieldIdName)
-	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
+	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
+	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
 		return r.Send(c, Created, consts.StatusBadRequest, err)
 	}
 
@@ -272,8 +273,8 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 		return r.Send(c, Updated, consts.StatusBadRequest, ErrQueryParam)
 	}
 
-	body := NewBody(r.FieldIdName)
-	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body(), c.Get(HeaderXContentType) == "array"); err != nil {
+	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
+	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
 		return r.Send(c, Created, consts.StatusBadRequest, err)
 	}
 

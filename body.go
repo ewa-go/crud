@@ -35,6 +35,11 @@ func NewBody(fieldIDName string, fields ...Field) *Body {
 	}
 }
 
+func (b *Body) SetIsArray(is bool) *Body {
+	b.IsArray = is
+	return b
+}
+
 func (b *Body) SetFields(fields ...Field) *Body {
 	b.Fields = append(b.Fields, fields...)
 	return b

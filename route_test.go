@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/ewa-go/ewa"
-	"github.com/ewa-go/ewa/security"
 	"testing"
 	"time"
+
+	"github.com/ewa-go/ewa"
+	"github.com/ewa-go/ewa/security"
 )
 
 type Handlers struct{}
@@ -78,15 +79,15 @@ func (h *Handlers) Audit(action string, c *ewa.Context, r *CRUD) {
 	fmt.Println(action)
 }
 
-func (h *Handlers) Unmarshal(body *Body, contentType string, data []byte, isArray bool) (err error) {
+func (h *Handlers) Unmarshal(body *Body, contentType string, data []byte) (err error) {
 	switch contentType {
 	case "application/json", "application/json;utf-8":
-		if isArray {
+		if body.IsArray {
 			return json.Unmarshal(data, &body.Array)
 		}
 		return json.Unmarshal(data, &body.Data)
 	case "application/xml":
-		if isArray {
+		if body.IsArray {
 			return xml.Unmarshal(data, &body.Array)
 		}
 		return xml.Unmarshal(data, &body.Data)
@@ -105,13 +106,14 @@ func TestSetModelName(t *testing.T) {
 
 func TestFunctions_Unmarshal(t *testing.T) {
 	crud := New(h).SetModelName("table")
-	body := NewBody("id")
-	err := crud.Unmarshal(body, "application/json", []byte(`{"name": "Name"}`), false)
+	body := NewBody("id").SetIsArray(false)
+	err := crud.Unmarshal(body, "application/json", []byte(`{"name": "Name"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(body.Data)
-	err = crud.Unmarshal(body, "application/json", []byte(`[{"name": "Name1"},{"name": "Name2"}]`), true)
+	body.SetIsArray(true)
+	err = crud.Unmarshal(body, "application/json", []byte(`[{"name": "Name1"},{"name": "Name2"}]`))
 	if err != nil {
 		t.Fatal(err)
 	}

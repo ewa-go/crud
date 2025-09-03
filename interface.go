@@ -105,6 +105,7 @@ func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 		q.Znak = "<="
 	case "%":
 		q.Znak = "like"
+		q.Type = "::text"
 	case "!%":
 		q.Znak = "not like"
 	case "~", "!~", "~*", "!~*":

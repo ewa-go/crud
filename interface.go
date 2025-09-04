@@ -105,6 +105,7 @@ func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 		q.Znak = "<="
 	case "%":
 		q.Znak = "like"
+		q.Type = "::text"
 	case "!%":
 		q.Znak = "not like"
 	case "~", "!~", "~*", "!~*":
@@ -270,6 +271,9 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 			}
 			if param.IsQuotes {
 				param.Key = `"` + param.Key + `"`
+			}
+			if param.Znak == "like ?" {
+				param.Key += string(param.Type)
 			}
 			v += spliter + strings.Trim(fmt.Sprintf("%s %s", param.Key, param.Znak), " ")
 		}

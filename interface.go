@@ -272,6 +272,9 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 			if param.IsQuotes {
 				param.Key = `"` + param.Key + `"`
 			}
+			if param.Znak == "like ?" {
+				param.Key += string(param.Type)
+			}
 			v += spliter + strings.Trim(fmt.Sprintf("%s %s", param.Key, param.Znak), " ")
 		}
 		if len(query) > 0 {

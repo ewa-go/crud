@@ -284,7 +284,15 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 		}
 	}
 
-	return
+	// Избавляемся от nil значений, так как gorm будет ломаться
+	var vals []any
+	for _, value := range values {
+		if value != nil {
+			vals = append(vals, value)
+		}
+	}
+
+	return query, vals
 }
 
 // Cast Приведение переменной к типу данных

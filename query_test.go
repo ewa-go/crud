@@ -135,7 +135,7 @@ func TestParams(t *testing.T) {
 	q.Set("group_ids", QueryFormat(r, "group_ids[!]", "null"))
 	query, values = r.Query(q, r.Columns(r))
 	assertEq(t, query, `"id" = ? and "group_ids" is not null`)
-	assertArrayEq(t, []any{13, nil}, values)
+	assertArrayEq(t, []any{13}, values)
 }
 
 func TestOR(t *testing.T) {

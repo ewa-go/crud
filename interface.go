@@ -149,9 +149,9 @@ func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 	if q.Value == nil {
 		switch q.Znak {
 		case "=":
-			q.Znak = "is ?"
+			q.Znak = "is null"
 		case "!=":
-			q.Znak = "is not ?"
+			q.Znak = "is not null"
 		}
 		return q, nil
 	}

@@ -131,11 +131,11 @@ func TestParams(t *testing.T) {
 	assertArrayEq(t, []any{11, []int{1, 2}}, values)
 
 	q = &QueryParams{}
-	q.ID = QueryFormat(r, "id", "12::int")
-	q.Set("group_ids", QueryFormat(r, "group_ids[%]", "1%"))
+	q.ID = QueryFormat(r, "id", "13::int")
+	q.Set("group_ids", QueryFormat(r, "group_ids[!]", "null"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "group_ids"::text like ?`)
-	assertArrayEq(t, []any{12, "1%"}, values)
+	assertEq(t, query, `"id" = ? and "group_ids" is not null`)
+	assertArrayEq(t, []any{13, nil}, values)
 }
 
 func TestOR(t *testing.T) {

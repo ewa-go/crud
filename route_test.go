@@ -151,7 +151,7 @@ func TestCustomHandler(t *testing.T) {
 				SetModelName("table").
 				SetFieldIdName("id").
 				CustomHandler(c, func(c *ewa.Context, r *CRUD) error {
-					defer r.Audit(Read, c, r)
+					//defer r.Audit(Read, c, r)
 					queryParams, err := r.NewQueryParams(c, false)
 					if err != nil {
 						return c.SendString(400, err.Error())

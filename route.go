@@ -152,7 +152,7 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
 	}
 	// Аудит
-	defer r.Audit(Read, c, r)
+	//defer r.Audit(Read, c, r)
 
 	// Вернуть столбцы таблицы
 	tableInfo := strings.ToLower(c.Get(HeaderTableInfo))
@@ -219,7 +219,7 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
 	}
 	// Аудит
-	defer r.Audit(Created, c, r)
+	//defer r.Audit(Created, c, r)
 
 	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
 	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
@@ -261,7 +261,7 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
 	}
 	// Аудит
-	defer r.Audit(Updated, c, r)
+	//defer r.Audit(Updated, c, r)
 
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)
@@ -309,7 +309,7 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
 	}
 	// Аудит
-	defer r.Audit(Deleted, c, r)
+	//defer r.Audit(Deleted, c, r)
 
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)

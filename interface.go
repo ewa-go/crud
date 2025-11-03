@@ -19,12 +19,11 @@ type IHandlers interface {
 	GetRecords(c *ewa.Context, r *CRUD, params *QueryParams) (status int, data Maps, total int64, err error)
 	UpdateRecord(c *ewa.Context, r *CRUD, data *Body, params *QueryParams) (status int, result any, err error)
 	DeleteRecord(c *ewa.Context, r *CRUD, params *QueryParams) (status int, result any, err error)
-	/*Audit(action string, c *ewa.Context, r *CRUD)*/
 	Unmarshal(body *Body, contentType string, data []byte) (err error)
 }
 
 type IResponse interface {
-	Send(c *ewa.Context, state string, status int, data any) error
+	Send(c *ewa.Context, r *CRUD, state string, status int, data any) error
 }
 
 type IQueryParam interface {

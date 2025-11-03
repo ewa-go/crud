@@ -161,17 +161,17 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 		if tableInfo != "full" {
 			fields = strings.Split(tableInfo, ",")
 		}
-		return r.Send(c, Read, 200, r.Columns(r, fields...))
+		return r.Send(c, r, Read, 200, r.Columns(r, fields...))
 	}
 
 	queryParams, err := r.NewQueryParams(c, true)
 	if err != nil {
-		return r.Send(c, Read, consts.StatusBadRequest, err)
+		return r.Send(c, r, Read, consts.StatusBadRequest, err)
 	}
 	// Обработчик до обращения в бд
 	if before != nil {
 		if status, err := before(c, r, c.Identity, queryParams, nil); err != nil {
-			return r.Send(c, Read, status, err)
+			return r.Send(c, r, Read, status, err)
 		}
 	}
 
@@ -179,24 +179,24 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 	if queryParams != nil && queryParams.ID != nil {
 		status, record, err := r.GetRecord(c, r, queryParams)
 		if err != nil {
-			return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+			return r.Send(c, r, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 		}
 		record.Excludes(r.Excludes...)
 
 		// Обработчик после обращению в бд
 		if after != nil {
 			if status, err = after(c, r, c.Identity, queryParams, record); err != nil {
-				return r.Send(c, Read, status, err)
+				return r.Send(c, r, Read, status, err)
 			}
 		}
 
-		return r.Send(c, Read, status, record)
+		return r.Send(c, r, Read, status, record)
 	}
 
 	// Вернуть записи
 	status, records, total, err := r.GetRecords(c, r, queryParams)
 	if err != nil {
-		return r.Send(c, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+		return r.Send(c, r, Read, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 	// Заголовок Total
 	c.Set(HeaderTotal, fmt.Sprintf("%d", total))
@@ -205,11 +205,11 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 	// Обработчик после обращению в бд
 	if after != nil {
 		if status, err = after(c, r, c.Identity, queryParams, records); err != nil {
-			return r.Send(c, Read, status, err)
+			return r.Send(c, r, Read, status, err)
 		}
 	}
 
-	return r.Send(c, Read, status, records)
+	return r.Send(c, r, Read, status, records)
 }
 
 // CreateHandler Обработчик для создания записей
@@ -223,35 +223,35 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 
 	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
 	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
-		return r.Send(c, Created, consts.StatusBadRequest, err)
+		return r.Send(c, r, Created, consts.StatusBadRequest, err)
 	}
 
 	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
-		return r.Send(c, Created, consts.StatusBadRequest, err) //c.SendString(r.String(consts.StatusBadRequest, err.Error()))
+		return r.Send(c, r, Created, consts.StatusBadRequest, err) //c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
 	// Обработчик до обращения в бд
 	if before != nil {
 		var status int
 		if status, err = before(c, r, c.Identity, queryParams, body); err != nil {
-			return r.Send(c, Created, status, err)
+			return r.Send(c, r, Created, status, err)
 		}
 	}
 
 	status, result, err := r.SetRecord(c, r, body, queryParams)
 	if err != nil {
-		return r.Send(c, Created, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
+		return r.Send(c, r, Created, status, err) //c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
 		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
-			return r.Send(c, Created, status, err)
+			return r.Send(c, r, Created, status, err)
 		}
 	}
 
-	return r.Send(c, Created, status, result)
+	return r.Send(c, r, Created, status, result)
 }
 
 // UpdateHandler Обновление записей
@@ -266,40 +266,40 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
-		return r.Send(c, Updated, consts.StatusBadRequest, err) //c.SendString(r.String(consts.StatusBadRequest, err.Error()))
+		return r.Send(c, r, Updated, consts.StatusBadRequest, err) //c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
 	if queryParams != nil && queryParams.ID == nil && queryParams.Len() == 0 {
-		return r.Send(c, Updated, consts.StatusBadRequest, ErrQueryParam)
+		return r.Send(c, r, Updated, consts.StatusBadRequest, ErrQueryParam)
 	}
 
 	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
 	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
-		return r.Send(c, Created, consts.StatusBadRequest, err)
+		return r.Send(c, r, Created, consts.StatusBadRequest, err)
 	}
 
 	// Обработчик до обращения в бд
 	if before != nil {
 		if status, err := before(c, r, c.Identity, queryParams, body); err != nil {
-			return r.Send(c, Updated, status, err)
+			return r.Send(c, r, Updated, status, err)
 		}
 	}
 
 	// Пишем данные в бд
 	status, result, err := r.UpdateRecord(c, r, body, queryParams)
 	if err != nil {
-		return r.Send(c, Updated, status, err)
+		return r.Send(c, r, Updated, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
 		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
-			return r.Send(c, Updated, status, err)
+			return r.Send(c, r, Updated, status, err)
 		}
 	}
 
-	return r.Send(c, Updated, status, result)
+	return r.Send(c, r, Updated, status, result)
 }
 
 // DeleteHandler Обработчик удаления записей
@@ -314,34 +314,34 @@ func (r *CRUD) DeleteHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)
 	if err != nil {
-		return r.Send(c, Deleted, consts.StatusBadRequest, err)
+		return r.Send(c, r, Deleted, consts.StatusBadRequest, err)
 		//return c.SendString(r.String(consts.StatusBadRequest, err.Error()))
 	}
 
 	if queryParams != nil && queryParams.ID == nil && queryParams.Len() == 0 {
-		return r.Send(c, Deleted, consts.StatusBadRequest, ErrQueryParam)
+		return r.Send(c, r, Deleted, consts.StatusBadRequest, ErrQueryParam)
 	}
 
 	// Обработчик до обращения в бд
 	if before != nil {
 		if status, err := before(c, r, c.Identity, queryParams, nil); err != nil {
-			return r.Send(c, Deleted, status, err)
+			return r.Send(c, r, Deleted, status, err)
 		}
 	}
 
 	// Удаление записи
 	status, result, err := r.DeleteRecord(c, r, queryParams)
 	if err != nil {
-		return r.Send(c, Deleted, status, err)
+		return r.Send(c, r, Deleted, status, err)
 		//return c.SendString(r.String(consts.StatusUnprocessableEntity, err.Error()))
 	}
 
 	// Обработчик после обращению в бд
 	if after != nil {
 		if status, err = after(c, r, c.Identity, queryParams, result); err != nil {
-			return r.Send(c, Deleted, status, err)
+			return r.Send(c, r, Deleted, status, err)
 		}
 	}
 
-	return r.Send(c, Deleted, status, result)
+	return r.Send(c, r, Deleted, status, result)
 }

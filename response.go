@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"time"
+
 	"github.com/ewa-go/ewa"
 	"github.com/ewa-go/ewa/consts"
-	"time"
 )
 
 type Response struct {
@@ -16,7 +17,7 @@ type Response struct {
 	Data     any       `json:"data,omitempty"`
 }
 
-func (r Response) Send(c *ewa.Context, state string, status int, data any) (err error) {
+func (rr Response) Send(c *ewa.Context, r *CRUD, state string, status int, data any) (err error) {
 	var (
 		body        any
 		contentType string
@@ -24,25 +25,25 @@ func (r Response) Send(c *ewa.Context, state string, status int, data any) (err 
 	)
 	switch t := data.(type) {
 	case error:
-		r.Ok = false
+		rr.Ok = false
 		body = t.Error()
 	default:
-		r.Ok = true
+		rr.Ok = true
 		body = data
 	}
 	switch state {
 	case Created, Updated, Deleted:
-		r.State = state
-		r.Datetime = time.Now()
-		r.Data = body
-		contentType, content, _ = r.accept(c.Get(consts.HeaderAccept), r)
+		rr.State = state
+		rr.Datetime = time.Now()
+		rr.Data = body
+		contentType, content, _ = rr.accept(c.Get(consts.HeaderAccept), r)
 	case Read:
-		contentType, content, _ = r.accept(c.Get(consts.HeaderAccept), data)
+		contentType, content, _ = rr.accept(c.Get(consts.HeaderAccept), data)
 	}
 	return c.Send(status, contentType, content)
 }
 
-func (r Response) accept(header string, data any) (contentType string, content []byte, err error) {
+func (rr Response) accept(header string, data any) (contentType string, content []byte, err error) {
 	switch header {
 	case consts.MIMEApplicationXML, consts.MIMEApplicationXMLCharsetUTF8:
 		content, err = xml.Marshal(data)

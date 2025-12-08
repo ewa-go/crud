@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ewa-go/ewa"
-	"github.com/ewa-go/ewa/security"
 )
 
 type Handlers struct{}
@@ -132,7 +131,7 @@ func TestGet(t *testing.T) {
 	}
 
 	ctx := &ewa.Context{
-		Identity: &security.Identity{
+		Identity: &ewa.Identity{
 			Username: "username",
 			Datetime: time.Now(),
 		},
@@ -166,7 +165,7 @@ func TestCustomHandler(t *testing.T) {
 	}
 
 	ctx := &ewa.Context{
-		Identity: &security.Identity{
+		Identity: &ewa.Identity{
 			Username: "username",
 			Datetime: time.Now(),
 		},

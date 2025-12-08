@@ -6,7 +6,6 @@ import (
 
 	"github.com/ewa-go/ewa"
 	"github.com/ewa-go/ewa/consts"
-	"github.com/ewa-go/ewa/security"
 )
 
 type CRUD struct {
@@ -24,8 +23,8 @@ type CRUD struct {
 
 var ErrQueryParam = "Укажите поля для уточнения изменения записи! Пример: ../path?name=Name"
 
-type BeforeHandler func(c *ewa.Context, r *CRUD, i *security.Identity, q *QueryParams, body *Body) (int, error)
-type AfterHandler func(c *ewa.Context, r *CRUD, i *security.Identity, q *QueryParams, result any) (int, error)
+type BeforeHandler func(c *ewa.Context, r *CRUD, i *ewa.Identity, q *QueryParams, body *Body) (int, error)
+type AfterHandler func(c *ewa.Context, r *CRUD, i *ewa.Identity, q *QueryParams, result any) (int, error)
 
 func New(h IHandlers) *CRUD {
 	return &CRUD{

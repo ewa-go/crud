@@ -10,11 +10,12 @@ import (
 )
 
 type CRUD struct {
-	FieldIdName string
-	ModelName   string
-	Excludes    []string
-	TableTypes  TableTypes
-	Variables   map[string]any
+	FieldIdName      string
+	ModelName        string
+	Excludes         []string
+	CurrentTableType TableType
+	TableTypes       TableTypes
+	Variables        map[string]any
 
 	IHandlers
 	IResponse
@@ -91,6 +92,12 @@ func (r *CRUD) SetModelName(modelName string) *CRUD {
 	return r
 }
 
+// SetCurrentTableType Установка текущего имени таблицы
+func (r *CRUD) SetCurrentTableType(tableType TableType) *CRUD {
+	r.CurrentTableType = tableType
+	return r
+}
+
 // SetExcludes Установка исключения полей из данных
 func (r *CRUD) SetExcludes(excludes ...string) *CRUD {
 	r.Excludes = append(r.Excludes, excludes...)
@@ -149,10 +156,9 @@ func (r *CRUD) CustomHandler(c *ewa.Context, h func(c *ewa.Context, r *CRUD) err
 func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
-		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetCurrentTableType(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetModelName(r.CurrentTableType.Value)
 	}
-	// Аудит
-	//defer r.Audit(Read, c, r)
 
 	// Вернуть столбцы таблицы
 	tableInfo := strings.ToLower(c.Get(HeaderTableInfo))
@@ -216,10 +222,9 @@ func (r *CRUD) ReadHandler(c *ewa.Context, before BeforeHandler, after AfterHand
 func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
-		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetCurrentTableType(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetModelName(r.CurrentTableType.Value)
 	}
-	// Аудит
-	//defer r.Audit(Created, c, r)
 
 	body := NewBody(r.FieldIdName).SetIsArray(c.Get(HeaderXContentType) == "array")
 	if err := r.Unmarshal(body, c.Get(consts.HeaderContentType), c.Body()); err != nil {
@@ -258,10 +263,9 @@ func (r *CRUD) CreateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) error {
 
 	if r.TableTypes != nil {
-		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetCurrentTableType(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetModelName(r.CurrentTableType.Value)
 	}
-	// Аудит
-	//defer r.Audit(Updated, c, r)
 
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)
@@ -306,10 +310,9 @@ func (r *CRUD) UpdateHandler(c *ewa.Context, before BeforeHandler, after AfterHa
 func (r *CRUD) DeleteHandler(c *ewa.Context, before BeforeHandler, after AfterHandler) (err error) {
 
 	if r.TableTypes != nil {
-		r.SetModelName(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetCurrentTableType(r.TableTypes.Get(c.Get(HeaderTableType)))
+		r.SetModelName(r.CurrentTableType.Value)
 	}
-	// Аудит
-	//defer r.Audit(Deleted, c, r)
 
 	// Получаем аргументы адресной строки
 	queryParams, err := r.NewQueryParams(c, false)

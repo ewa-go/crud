@@ -8,17 +8,17 @@ type TableType struct {
 type TableTypes []TableType
 
 // Add Добавить тип таблицы
-func (h TableTypes) Add(key, value string, isDefault ...bool) TableTypes {
+func (tt TableTypes) Add(key, value string, isDefault ...bool) TableTypes {
 	var d bool
 	if len(isDefault) > 0 {
 		d = isDefault[0]
 	}
-	return append(h, TableType{key, value, d})
+	return append(tt, TableType{key, value, d})
 }
 
 // Default Вернуть тип таблицы по-умолчанию
-func (h TableTypes) Default() string {
-	for _, hv := range h {
+func (tt TableTypes) Default() string {
+	for _, hv := range tt {
 		if hv.IsDefault {
 			return hv.Value
 		}
@@ -28,13 +28,13 @@ func (h TableTypes) Default() string {
 
 // Get Извлечь из заголовков тип таблицы.
 // Если заголовок не найден, то возвращается тип таблицы по-умолчанию
-func (h TableTypes) Get(header string) (s string) {
-	for _, hh := range h {
-		if hh.Key == header {
-			return hh.Value
+func (tt TableTypes) Get(header string) (s TableType) {
+	for _, t := range tt {
+		if t.Key == header {
+			return t
 		}
-		if hh.IsDefault {
-			s = hh.Value
+		if t.IsDefault {
+			s = t
 		}
 	}
 	return

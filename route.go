@@ -26,12 +26,31 @@ var ErrQueryParam = "Укажите поля для уточнения изме�
 type BeforeHandler func(c *ewa.Context, r *CRUD, i *ewa.Identity, q *QueryParams, body *Body) (int, error)
 type AfterHandler func(c *ewa.Context, r *CRUD, i *ewa.Identity, q *QueryParams, result any) (int, error)
 
-func New(h IHandlers) *CRUD {
-	return &CRUD{
-		IHandlers:   h,
-		IResponse:   new(Response),
-		IQueryParam: new(PostgresFormat),
+func New(v ...any) *CRUD {
+	r := &CRUD{}
+	for _, vv := range v {
+		switch t := vv.(type) {
+		case IHandlers:
+			r.IHandlers = t
+		case IResponse:
+			r.IResponse = t
+		case IQueryParam:
+			r.IQueryParam = t
+		}
 	}
+	if r.IResponse == nil {
+		r.SetIResponse(new(Response))
+	}
+	if r.IQueryParam == nil {
+		r.SetIQueryParam(new(PostgresFormat))
+	}
+	return r
+}
+
+// SetIHandlers Установка интерфейса для обработчиков
+func (r *CRUD) SetIHandlers(handlers IHandlers) *CRUD {
+	r.IHandlers = handlers
+	return r
 }
 
 // SetIQueryParam Установка интерфейса для форматирования query параметров

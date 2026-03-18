@@ -50,17 +50,6 @@ func (b *Body) SetExecuteHandler(h ExecuteHandler) *Body {
 	return b
 }
 
-/*func (b *Body) Unmarshal(data []byte, isArray bool) error {
-	if len(data) == 0 {
-		return errors.New("пустые данные")
-	}
-	b.IsArray = isArray
-	if isArray {
-		return json.Unmarshal(data, &b.Array)
-	}
-	return json.Unmarshal(data, &b.Data)
-}*/
-
 func (b *Body) Execute(skipError bool) error {
 	if b.IsArray {
 		for _, data := range b.Array {
@@ -88,16 +77,30 @@ func (b *Body) GetField(key string) any {
 	return nil
 }
 
+func (b *Body) DeleteField(key string) {
+	delete(b.Data, key)
+}
+
 func (b *Body) SetArrayField(i int, key string, value any) *Body {
-	b.Array[i][key] = value
+	if len(b.Array) < i {
+		b.Array[i][key] = value
+	}
 	return b
 }
 
 func (b *Body) GetArrayField(i int, key string) any {
-	if value, ok := b.Array[i][key]; ok {
-		return value
+	if len(b.Array) < i {
+		if value, ok := b.Array[i][key]; ok {
+			return value
+		}
 	}
 	return nil
+}
+
+func (b *Body) DeleteArrayField(i int, key string) {
+	if len(b.Array) < i {
+		delete(b.Array[i], key)
+	}
 }
 
 func (b *Body) ToArrayMap(i int) (data map[string]interface{}) {

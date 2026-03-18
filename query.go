@@ -14,6 +14,7 @@ type QueryParam struct {
 	DataType string
 	IsQuotes bool
 	IsOR     bool
+	//OR       []*QueryParam
 }
 
 type QueryParams struct {
@@ -99,6 +100,10 @@ func (q *QueryParams) Get() map[string][]*QueryParam {
 	return q.m
 }
 
+func (q *QueryParams) Delete(key string) {
+	delete(q.m, key)
+}
+
 // GetParams Вернуть параметры
 func (q *QueryParams) GetParams(key string) []*QueryParam {
 	return q.m[key]
@@ -125,10 +130,14 @@ func (r *CRUD) QueryFormat(key, value string) (q *QueryParam, err error) {
 		Type:     ValueType,
 		DataType: "",
 	}
-	if len(q.Key) > 3 && q.Key[:3] == "[|]" {
+
+	// Получение значений для OR
+	if q.Key[0] == '[' && q.Key[len(key)-1] == ']' {
+		q.Key = q.Key[1 : len(q.Key)-1]
 		q.IsOR = true
-		q.Key = q.Key[3:]
 	}
+
+	// Получение знака для выполнения
 	rgx := regexp.MustCompile(r.Pattern())
 	if rgx.MatchString(q.Key) {
 		matches := rgx.FindStringSubmatch(q.Key)
@@ -137,11 +146,19 @@ func (r *CRUD) QueryFormat(key, value string) (q *QueryParam, err error) {
 			q.Key = rgx.ReplaceAllString(q.Key, "")
 		}
 	}
+	// Если нужен поиск значения по полям
+	if q.IsOR {
+		key = value
+		value = q.Key
+		q.Key = key
+	}
+	// Определение типа данных значения
 	index := strings.Index(value, "::")
 	if index > -1 {
 		q.DataType = value[index+2:]
 		value = value[:index]
 	}
+	// Приведение типов значений
 	if err = r.Cast(value, q); err != nil {
 		return nil, err
 	}

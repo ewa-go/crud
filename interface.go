@@ -83,17 +83,17 @@ func (f functions) Unmarshal(body *Body, contentType string, data []byte) (err e
 	return nil
 }
 
-type PostgresFormat struct{}
+type Postgres struct{}
 
 const (
 	inArray = "&& ARRAY[?]"
 )
 
-func (p *PostgresFormat) Pattern() string {
+func (p *Postgres) Pattern() string {
 	return `\[(->|->>|>|<|>-|<-|!|<>|array|&&|!array|!&&|~|!~|~\*|!~\*|\+|!\+|%|:|[aA-zZ]+)]$`
 }
 
-func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
+func (p *Postgres) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 
 	switch q.Znak {
 	case "!":
@@ -173,33 +173,88 @@ func (p *PostgresFormat) Format(r *CRUD, q *QueryParam) (*QueryParam, error) {
 	return q, nil
 }
 
-func (p *PostgresFormat) setTypeArray(q *QueryParam) *QueryParam {
+func (p *Postgres) setTypeArray(q *QueryParam) *QueryParam {
 	if q.Znak == inArray {
+		var (
+			array    string
+			dataType string
+		)
 		switch q.DataType {
-		case "string":
-			q.Znak += "::text[]"
+		default:
+			dataType = "::text[]"
+			if v, ok := q.Value.([]string); ok && len(v) > 0 {
+				array = "'" + strings.Join(v, "','") + "'"
+			}
 		case "int":
-			q.Znak += "::int[]"
+			dataType = "::int[]"
+			if v, ok := q.Value.([]int); ok && len(v) > 0 {
+				for i, val := range v {
+					array += strconv.Itoa(val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		case "int64":
-			q.Znak += "::bigint[]"
+			dataType = "::bigint[]"
+			if v, ok := q.Value.([]int64); ok && len(v) > 0 {
+				for i, val := range v {
+					array += fmt.Sprintf("%d", val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		case "float":
-			q.Znak += "::real[]"
+			dataType = "::real[]"
+			if v, ok := q.Value.([]float32); ok && len(v) > 0 {
+				for i, val := range v {
+					array += fmt.Sprintf("%f", val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		case "float64":
-			q.Znak += "::double precision[]"
+			dataType = "::double precision[]"
+			if v, ok := q.Value.([]float64); ok && len(v) > 0 {
+				for i, val := range v {
+					array += fmt.Sprintf("%f", val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		case "uint":
-			q.Znak += "::serial[]"
+			dataType = "::serial[]"
+			if v, ok := q.Value.([]uint); ok && len(v) > 0 {
+				for i, val := range v {
+					array += fmt.Sprintf("%d", val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		case "uint64":
-			q.Znak += "::bigserial[]"
+			dataType = "::bigserial[]"
+			if v, ok := q.Value.([]uint64); ok && len(v) > 0 {
+				for i, val := range v {
+					array += fmt.Sprintf("%d", val)
+					if i < len(v)-1 {
+						array += ","
+					}
+				}
+			}
 		}
+
+		q.Znak = strings.ReplaceAll(q.Znak, "?", array) + dataType
+		q.Value = nil
 	}
 	return q
 }
 
-func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, values []any) {
-	var (
-		params []*QueryParam
-		fields []string
-	)
+func (p *Postgres) Query(q *QueryParams, columns []string) (query string, values []any) {
+	var params []*QueryParam
 	// Если нет параметров, то выходим
 	if q.Len() == 0 && q.ID == nil {
 		return "", nil
@@ -209,7 +264,7 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 		params = append(params, q.ID)
 	}
 	// Заполнение параметры адресной строки
-	for key, value := range q.m {
+	for key, value := range q.Get() {
 		if key == AllFieldsParamName || key == ExtraParamName {
 			continue
 		}
@@ -219,62 +274,75 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 	}
 
 	// Формирование полей для поиска везде OR
-	if vals, ok := q.m[AllFieldsParamName]; ok && len(vals) > 0 {
+	if vals, ok := q.Get()[AllFieldsParamName]; ok && len(vals) > 0 {
+
 		value := vals[0]
+
+		var fields []string
 		// Параметр адресной строки *=
 		if q.Filter != nil && len(q.Filter.Fields) > 0 {
 			for _, field := range q.Filter.Fields {
-				if _, ok = q.m[field]; !ok {
+				if _, ok = q.Get()[field]; !ok {
 					value.Key = field
-					if value.IsQuotes {
-						value.Key = `"` + value.Key + `"::text`
-					}
-					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
-					values = append(values, value.Value)
+					f, v := p.setFields(value)
+					fields = append(fields, f)
+					values = append(values, v)
 				}
 			}
 		} else {
 			for _, column := range columns {
-				if _, ok = q.m[column]; !ok {
+				if _, ok = q.Get()[column]; !ok {
 					value.Key = column
-					if value.IsQuotes {
-						value.Key = `"` + value.Key + `"::text`
-					}
-					fields = append(fields, strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "))
-					values = append(values, value.Value)
+					f, v := p.setFields(value)
+					fields = append(fields, f)
+					values = append(values, v)
 				}
 			}
 		}
-	}
-	if len(fields) > 0 {
-		for i, field := range fields {
-			var spliter string
-			if i < len(fields)-1 {
-				spliter = " or "
+
+		if len(fields) > 0 {
+			for i, field := range fields {
+				var spliter string
+				if i < len(fields)-1 {
+					spliter = " or "
+				}
+				query += field + spliter
 			}
-			query += field + spliter
+			query = "(" + query + ")"
 		}
-		query = "(" + query + ")"
 	}
+
 	// Заполняем строку запроса и значения для неё
 	if len(params) > 0 {
 		var v string
 		for i, param := range params {
 			values = append(values, param.Value)
-			var spliter string
+			var spliter, key string
 			if i > 0 {
 				spliter = " and "
 			}
-			if param.IsOR {
-				spliter = " or "
-			}
-			if param.IsQuotes {
-				param.Key = `"` + param.Key + `"`
+			if param.IsQuotes && !param.IsOR {
+				key = `"` + param.Key + `"`
+			} else if param.IsOR {
+				or := " || "
+				keys := strings.Split(param.Key, ",")
+				for j, k := range keys {
+					if param.IsQuotes {
+						key += `"` + strings.Trim(k, " ") + `"`
+					} else {
+						key += strings.Trim(k, " ")
+					}
+					if j < len(keys)-1 {
+						key += or
+					}
+				}
+			} else {
+				key = param.Key
 			}
 			if param.Znak == "like ?" {
-				param.Key += string(param.Type)
+				key += string(param.Type)
 			}
-			v += spliter + strings.Trim(fmt.Sprintf("%s %s", param.Key, param.Znak), " ")
+			v += spliter + strings.Trim(fmt.Sprintf("%s %s", key, param.Znak), " ")
 		}
 		if len(query) > 0 {
 			query += " and " + v
@@ -294,8 +362,15 @@ func (*PostgresFormat) Query(q *QueryParams, columns []string) (query string, va
 	return query, vals
 }
 
+func (p *Postgres) setFields(value *QueryParam) (string, any) {
+	if value.IsQuotes {
+		value.Key = `"` + value.Key + `"::text`
+	}
+	return strings.Trim(fmt.Sprintf("%s %s", value.Key, value.Znak), " "), value.Value
+}
+
 // Cast Приведение переменной к типу данных
-func (p *PostgresFormat) Cast(value string, q *QueryParam) (err error) {
+func (p *Postgres) Cast(value string, q *QueryParam) (err error) {
 
 	if q.DataType == "" {
 		switch strings.ToLower(value) {
@@ -420,7 +495,7 @@ func (p *PostgresFormat) Cast(value string, q *QueryParam) (err error) {
 }
 
 // IsArray Проверка на массив
-func (*PostgresFormat) IsArray(value string) ([]string, bool) {
+func (*Postgres) IsArray(value string) ([]string, bool) {
 	rgx := regexp.MustCompile(`^\[(.+)]$`)
 	if rgx.MatchString(value) {
 		matches := rgx.FindStringSubmatch(value)
@@ -431,7 +506,7 @@ func (*PostgresFormat) IsArray(value string) ([]string, bool) {
 	return nil, false
 }
 
-func (*PostgresFormat) IsRange(znak, value string) ([]string, bool) {
+func (*Postgres) IsRange(znak, value string) ([]string, bool) {
 	if znak == ":" {
 		rgx := regexp.MustCompile(`^\[(.+)\|(.+)]$`)
 		if rgx.MatchString(value) {
@@ -444,7 +519,7 @@ func (*PostgresFormat) IsRange(znak, value string) ([]string, bool) {
 	return nil, false
 }
 
-func (*PostgresFormat) SetInt32Array(array []string) (a []int) {
+func (*Postgres) SetInt32Array(array []string) (a []int) {
 	for _, v := range array {
 		if value, err := strconv.Atoi(v); err == nil {
 			a = append(a, value)
@@ -453,7 +528,7 @@ func (*PostgresFormat) SetInt32Array(array []string) (a []int) {
 	return a
 }
 
-func (*PostgresFormat) SetInt64Array(array []string) (a []int64) {
+func (*Postgres) SetInt64Array(array []string) (a []int64) {
 	for _, v := range array {
 		if value, err := strconv.ParseInt(v, 10, 64); err == nil {
 			a = append(a, value)
@@ -462,7 +537,7 @@ func (*PostgresFormat) SetInt64Array(array []string) (a []int64) {
 	return a
 }
 
-func (*PostgresFormat) SetUIntArray(array []string) (a []uint64) {
+func (*Postgres) SetUIntArray(array []string) (a []uint64) {
 	for _, v := range array {
 		if value, err := strconv.ParseUint(v, 10, 32); err == nil {
 			a = append(a, value)
@@ -471,7 +546,7 @@ func (*PostgresFormat) SetUIntArray(array []string) (a []uint64) {
 	return a
 }
 
-func (*PostgresFormat) SetUInt64Array(array []string) (a []uint64) {
+func (*Postgres) SetUInt64Array(array []string) (a []uint64) {
 	for _, v := range array {
 		if value, err := strconv.ParseUint(v, 10, 64); err == nil {
 			a = append(a, value)
@@ -480,7 +555,7 @@ func (*PostgresFormat) SetUInt64Array(array []string) (a []uint64) {
 	return a
 }
 
-func (*PostgresFormat) SetFloat32Array(array []string) (a []float32) {
+func (*Postgres) SetFloat32Array(array []string) (a []float32) {
 	for _, v := range array {
 		if value, err := strconv.ParseFloat(v, 32); err == nil {
 			a = append(a, float32(value))
@@ -489,7 +564,7 @@ func (*PostgresFormat) SetFloat32Array(array []string) (a []float32) {
 	return a
 }
 
-func (*PostgresFormat) SetFloat64Array(array []string) (a []float64) {
+func (*Postgres) SetFloat64Array(array []string) (a []float64) {
 	for _, v := range array {
 		if value, err := strconv.ParseFloat(v, 64); err == nil {
 			a = append(a, value)
@@ -498,7 +573,7 @@ func (*PostgresFormat) SetFloat64Array(array []string) (a []float64) {
 	return a
 }
 
-func (*PostgresFormat) SetTimeArray(array []string, layout string) (a []time.Time) {
+func (*Postgres) SetTimeArray(array []string, layout string) (a []time.Time) {
 	for _, v := range array {
 		if value, err := time.Parse(layout, v); err == nil {
 			a = append(a, value)

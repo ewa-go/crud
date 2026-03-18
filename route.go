@@ -42,7 +42,7 @@ func New(v ...any) *CRUD {
 		r.SetIResponse(new(Response))
 	}
 	if r.IQueryParam == nil {
-		r.SetIQueryParam(new(PostgresFormat))
+		r.SetIQueryParam(new(Postgres))
 	}
 	return r
 }

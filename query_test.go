@@ -36,11 +36,11 @@ func getCRUD() *CRUD {
 	return New(new(functions))
 }
 
-func TestName(t *testing.T) {
+/*func TestName(t *testing.T) {
 	var a any
 	a = []string{"a", "b", "c"}
 	fmt.Println(a)
-}
+}*/
 
 func TestParams(t *testing.T) {
 	r := getCRUD()
@@ -84,29 +84,29 @@ func TestParams(t *testing.T) {
 	q.ID = QueryFormat(r, "id", "5::int")
 	q.Set("name", QueryFormat(r, "name[array]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
-	assertArrayEq(t, []any{5, []string{"success", "warning"}}, values)
+	assertEq(t, query, `"id" = ? and "name" && ARRAY['success','warning']::text[]`)
+	assertArrayEq(t, []any{5}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "6::int")
 	q.Set("name", QueryFormat(r, "name[&&]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "name" && ARRAY[?]`)
-	assertArrayEq(t, []any{6, []string{"success", "warning"}}, values)
+	assertEq(t, query, `"id" = ? and "name" && ARRAY['success','warning']::text[]`)
+	assertArrayEq(t, []any{6}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "7::int")
 	q.Set("name", QueryFormat(r, "name[!array]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
-	assertArrayEq(t, []any{7, []string{"success", "warning"}}, values)
+	assertEq(t, query, `"id" = ? and not "name" && ARRAY['success','warning']::text[]`)
+	assertArrayEq(t, []any{7}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "8")
 	q.Set("name", QueryFormat(r, "name[!&&]", "[success,warning]"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and not "name" && ARRAY[?]`)
-	assertArrayEq(t, []any{"8", []string{"success", "warning"}}, values)
+	assertEq(t, query, `"id" = ? and not "name" && ARRAY['success','warning']::text[]`)
+	assertArrayEq(t, []any{"8"}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "9::int")
@@ -127,8 +127,8 @@ func TestParams(t *testing.T) {
 	q.ID = QueryFormat(r, "id", "11::int")
 	q.Set("group_ids", QueryFormat(r, "group_ids[&&]", "[1,2]::int"))
 	query, values = r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "group_ids" && ARRAY[?]::int[]`)
-	assertArrayEq(t, []any{11, []int{1, 2}}, values)
+	assertEq(t, query, `"id" = ? and "group_ids" && ARRAY[1,2]::int[]`)
+	assertArrayEq(t, []any{11}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "13::int")
@@ -138,7 +138,7 @@ func TestParams(t *testing.T) {
 	assertArrayEq(t, []any{13}, values)
 }
 
-func TestOR(t *testing.T) {
+func TestFindValueInManyFields(t *testing.T) {
 	var err error
 	r := getCRUD()
 	q := &QueryParams{}
@@ -146,10 +146,10 @@ func TestOR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q.Set("name", QueryFormat(r, "name", "Name"))
-	q.Set("index", QueryFormat(r, "[|]index", "2::int"))
+	q.Set("name", QueryFormat(r, "[Name[~*]]", "firstname, lastname,middlename"))
+	q.Set("[index]", QueryFormat(r, "index", "2::int"))
 	query, values := r.Query(q, r.Columns(r))
-	assertEq(t, query, `"id" = ? and "name" = ? or "index" = ?`)
+	assertEq(t, query, `"id" = ? and "firstname" || "lastname" || "middlename" ~* ? and "index" = ?`)
 	assertArrayEq(t, []any{1, "Name", 2}, values)
 }
 

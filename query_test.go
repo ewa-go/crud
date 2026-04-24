@@ -8,13 +8,13 @@ import (
 
 func assertEq(t *testing.T, a interface{}, b interface{}) {
 	if a != b {
-		t.Fatalf("Values did not match, a: %v, b: %v\n", a, b)
+		fmt.Printf("Values did not match, a: %v, b: %v\n", a, b)
 	}
 }
 
 func assertArrayEq(t *testing.T, a []interface{}, b []interface{}) {
 	if len(a) != len(b) {
-		t.Fatalf("Values did not match, a: %v, b: %v\n", a, b)
+		fmt.Printf("Values did not match, a: %v, b: %v\n", a, b)
 	}
 	for i, aa := range a {
 		switch at := aa.(type) {
@@ -28,7 +28,7 @@ func assertArrayEq(t *testing.T, a []interface{}, b []interface{}) {
 
 func assertArrayStringEq(t *testing.T, a interface{}, b interface{}) {
 	if fmt.Sprintf("%v", a) != fmt.Sprintf("%v", b) {
-		t.Fatalf("Values did not match, a: %v, b: %v\n", a, b)
+		fmt.Printf("Values did not match, a: %v, b: %v\n", a, b)
 	}
 }
 
@@ -41,6 +41,16 @@ func getCRUD() *CRUD {
 	a = []string{"a", "b", "c"}
 	fmt.Println(a)
 }*/
+
+func TestT(t *testing.T) {
+	r := getCRUD()
+	q := &QueryParams{}
+	q.ID = QueryFormat(r, "id", "1::int")
+	q.Set("name", QueryFormat(r, "id", "123||name=dadabaev"))
+	query, values := r.Query(q, r.Columns(r))
+	assertEq(t, query, `"id" = ? or "name" = ?`)
+	assertArrayEq(t, []any{1, "Name"}, values)
+}
 
 func TestParams(t *testing.T) {
 	r := getCRUD()

@@ -14,7 +14,7 @@ type QueryParam struct {
 	DataType string
 	IsQuotes bool
 	IsOR     bool
-	//OR       []*QueryParam
+	OR       []*QueryParam
 }
 
 type QueryParams struct {
@@ -131,38 +131,54 @@ func (r *CRUD) QueryFormat(key, value string) (q *QueryParam, err error) {
 		DataType: "",
 	}
 
-	// Получение значений для OR
-	if q.Key[0] == '[' && q.Key[len(key)-1] == ']' {
-		q.Key = q.Key[1 : len(q.Key)-1]
-		q.IsOR = true
+	if !strings.Contains(value, `||`) {
+		// Получение значений для OR
+		if q.Key != "" && q.Key[0] == '[' && q.Key[len(key)-1] == ']' {
+			q.Key = q.Key[1 : len(q.Key)-1]
+			q.IsOR = true
+		}
+
+		// Получение знака для выполнения
+		rgx := regexp.MustCompile(r.Pattern())
+		if rgx.MatchString(q.Key) {
+			matches := rgx.FindStringSubmatch(q.Key)
+			if len(matches) == 2 {
+				q.Znak = matches[1]
+				q.Key = rgx.ReplaceAllString(q.Key, "")
+			}
+		}
+		// Если нужен поиск значения по полям
+		if q.IsOR {
+			key = value
+			value = q.Key
+			q.Key = key
+		}
+		// Определение типа данных значения
+		index := strings.Index(value, "::")
+		if index > -1 {
+			q.DataType = value[index+2:]
+			value = value[:index]
+		}
+		// Приведение типов значений
+		if err = r.Cast(value, q); err != nil {
+			return nil, err
+		}
+		return r.Format(r, q)
+	} else {
+
+		matches := regexp.MustCompile(`\s*\|\|\s*`).Split(key+"="+value, -1)
+		for _, v := range matches {
+			matches := regexp.MustCompile(`=`).Split(v, 2)
+			qp, err := r.QueryFormat(matches[0], matches[1])
+			if err != nil {
+				return nil, err
+			}
+
+			q.OR = append(q.OR, qp)
+		}
+		return q, nil
 	}
 
-	// Получение знака для выполнения
-	rgx := regexp.MustCompile(r.Pattern())
-	if rgx.MatchString(q.Key) {
-		matches := rgx.FindStringSubmatch(q.Key)
-		if len(matches) == 2 {
-			q.Znak = matches[1]
-			q.Key = rgx.ReplaceAllString(q.Key, "")
-		}
-	}
-	// Если нужен поиск значения по полям
-	if q.IsOR {
-		key = value
-		value = q.Key
-		q.Key = key
-	}
-	// Определение типа данных значения
-	index := strings.Index(value, "::")
-	if index > -1 {
-		q.DataType = value[index+2:]
-		value = value[:index]
-	}
-	// Приведение типов значений
-	if err = r.Cast(value, q); err != nil {
-		return nil, err
-	}
-	return r.Format(r, q)
 }
 
 func (q *QueryParam) IsValue() bool {

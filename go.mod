@@ -2,7 +2,10 @@ module github.com/ewa-go/crud
 
 go 1.24.0
 
-require github.com/ewa-go/ewa v0.0.40
+require (
+	github.com/ewa-go/db v0.0.6
+	github.com/ewa-go/ewa v0.0.40
+)
 
 require (
 	github.com/ewa-go/jsonschema v0.5.0 // indirect

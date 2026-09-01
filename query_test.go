@@ -88,7 +88,7 @@ func TestParams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertArrayEq(t, []any{4, []time.Time{from, to}}, values)
+	assertArrayEq(t, []any{4, from, to}, values)
 
 	q = &QueryParams{}
 	q.ID = QueryFormat(r, "id", "5::int")
@@ -193,6 +193,7 @@ func TestFilter(t *testing.T) {
 		"orders": [],
 		"limit": 10,
 		"offset": 0,
+		"distinct": true,
 		"vars": {
 			"is_server_member_role": true,
 			"is_server_group": false
@@ -202,9 +203,12 @@ func TestFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertEq(t, f.Distinct, true)
 	assertEq(t, f.GetVar("is_server_member_role"), true)
 	assertEq(t, f.GetVar("is_server_group"), false)
 	assertEq(t, f.GetVar("any"), nil)
+	f.SetVar("key", "value")
+	assertEq(t, f.GetVar("key"), "value")
 }
 
 func TestCast(t *testing.T) {

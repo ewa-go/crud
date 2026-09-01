@@ -26,11 +26,12 @@ type QueryParams struct {
 }
 
 type Filter struct {
-	Fields []string               `json:"fields,omitempty"`
-	Orders []string               `json:"orders,omitempty"`
-	Limit  int                    `json:"limit,omitempty"`
-	Offset int                    `json:"offset,omitempty"`
-	Vars   map[string]interface{} `json:"vars,omitempty"`
+	Fields   []string               `json:"fields,omitempty"`
+	Orders   []string               `json:"orders,omitempty"`
+	Limit    int                    `json:"limit,omitempty"`
+	Offset   int                    `json:"offset,omitempty"`
+	Distinct bool                   `json:"distinct,omitempty"`
+	Vars     map[string]interface{} `json:"vars,omitempty"`
 }
 
 type Map map[string]interface{}
@@ -196,4 +197,12 @@ func (q *QueryParam) IsRange() bool {
 // GetVar Найти значение
 func (f Filter) GetVar(key string) any {
 	return f.Vars[key]
+}
+
+// SetVar Добавить значение
+func (f Filter) SetVar(key string, val any) {
+	if f.Vars == nil {
+		f.Vars = make(map[string]any)
+	}
+	f.Vars[key] = val
 }

@@ -14,6 +14,8 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 h1:clC1lXBpe2kTj2VHdaIu9ajZQe4kcEY9j0NsnDDBZ3o=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
+github.com/ewa-go/db v0.0.6 h1:Mptgck6AtcOcJQOz1HNBUwpZe15DtV+GN7VllsWAmGg=
+github.com/ewa-go/db v0.0.6/go.mod h1:+izlZlql2FmCN818MAx43C6XYEffcrERgYC0wAN1XeA=
 github.com/ewa-go/ewa v0.0.40 h1:ScVLCFtYhMr57Qf5KvIrX+MwfLL8tccu2n1V+9Jrqhw=
 github.com/ewa-go/ewa v0.0.40/go.mod h1:UBhW3CWUe1XQ3YzuSTg8Yu1KNB69IoF22DHaxfv+pZ0=
 github.com/ewa-go/ewa-fiber v0.0.16 h1:38WU94eqsbcKaIc6AzRpByAZYMx96N8tBPgrRp6iWcs=

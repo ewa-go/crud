@@ -140,7 +140,7 @@ func (r *CRUD) NewQueryParams(c *ewa.Context, isFilter bool) (*QueryParams, erro
 		}
 
 		// Применение фильтра для запроса
-		queryParams.Filter = &filter
+		queryParams.Filter = filter
 	}
 
 	paramId := c.Params(r.FieldIdName)

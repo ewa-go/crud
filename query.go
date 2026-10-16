@@ -52,13 +52,13 @@ type Range struct {
 }
 
 // NewFilter Инициализация фильтра для таблиц
-func NewFilter(data []byte) (f Filter, err error) {
-	f = Filter{
+func NewFilter(data []byte) (f *Filter, err error) {
+	f = &Filter{
 		Limit:  -1,
 		Offset: -1,
 	}
 	if len(data) > 0 {
-		err = json.Unmarshal(data, &f)
+		err = json.Unmarshal(data, f)
 	}
 	return f, err
 }
@@ -165,20 +165,19 @@ func (r *CRUD) QueryFormat(key, value string) (q *QueryParam, err error) {
 			return nil, err
 		}
 		return r.Format(r, q)
-	} else {
-
-		matches := regexp.MustCompile(`\s*\|\|\s*`).Split(key+"="+value, -1)
-		for _, v := range matches {
-			matches := regexp.MustCompile(`=`).Split(v, 2)
-			qp, err := r.QueryFormat(matches[0], matches[1])
-			if err != nil {
-				return nil, err
-			}
-
-			q.OR = append(q.OR, qp)
-		}
-		return q, nil
 	}
+
+	matches := regexp.MustCompile(`\s*\|\|\s*`).Split(key+"="+value, -1)
+	for _, v := range matches {
+		matches := regexp.MustCompile(`=`).Split(v, 2)
+		qp, err := r.QueryFormat(matches[0], matches[1])
+		if err != nil {
+			return nil, err
+		}
+
+		q.OR = append(q.OR, qp)
+	}
+	return q, nil
 
 }
 
@@ -195,12 +194,12 @@ func (q *QueryParam) IsRange() bool {
 }
 
 // GetVar Найти значение
-func (f Filter) GetVar(key string) any {
+func (f *Filter) GetVar(key string) any {
 	return f.Vars[key]
 }
 
 // SetVar Добавить значение
-func (f Filter) SetVar(key string, val any) {
+func (f *Filter) SetVar(key string, val any) {
 	if f.Vars == nil {
 		f.Vars = make(map[string]any)
 	}
